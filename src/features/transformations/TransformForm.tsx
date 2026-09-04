@@ -3,6 +3,13 @@
 import { useMemo, useState, useTransition, type FormEvent } from "react";
 
 import {
+  Field,
+  SectionCard,
+  StatusBadge,
+  controlClassName,
+  primaryButtonClassName,
+} from "@/components/ui/primitives";
+import {
   MAGIC_HOUR_ART_STYLES,
   MAGIC_HOUR_FPS_RESOLUTIONS,
   MAGIC_HOUR_MODELS,
@@ -20,6 +27,7 @@ type TransformFormProps = {
   transformationId: string;
   sourceDurationSeconds?: number;
   sourcePreviewUrl: string;
+  sourceFilename?: string;
   onQueued?: (data: TransformResponse) => void;
 };
 
@@ -42,10 +50,25 @@ function defaultEndSeconds(duration?: number): string {
   return "5";
 }
 
+const VERSION_HINTS: Record<FormState["version"], string> = {
+  v2: "Faster and usually more consistent. Recommended default.",
+  v1: "More detail and stronger prompt adherence; may be slower.",
+  default:
+    "Uses Magic Hour’s style default. Some styles currently resolve to unavailable V3 models.",
+};
+
+const PROMPT_TYPE_HINTS: Record<FormState["promptType"], string> = {
+  default: "Uses Magic Hour’s recommended prompt for the selected art style.",
+  custom: "Only your prompt is used (style LoRA may still apply on v1).",
+  append_default:
+    "Your prompt is appended to the style’s recommended prompt.",
+};
+
 export function TransformForm({
   transformationId,
   sourceDurationSeconds,
   sourcePreviewUrl,
+  sourceFilename,
   onQueued,
 }: TransformFormProps) {
   const [form, setForm] = useState<FormState>({
@@ -69,9 +92,9 @@ export function TransformForm({
 
   const durationHint = useMemo(() => {
     if (sourceDurationSeconds === undefined) {
-      return "Source duration unavailable; server still validates the trim window.";
+      return "Source duration unavailable; the server still validates the trim window.";
     }
-    return `Source duration: ${sourceDurationSeconds.toFixed(2)}s`;
+    return `Source is ${sourceDurationSeconds.toFixed(2)}s long. End must stay within that window.`;
   }, [sourceDurationSeconds]);
 
   function updateField<K extends keyof FormState>(key: K, value: FormState[K]) {
@@ -156,244 +179,301 @@ export function TransformForm({
   const disabled = isPending || result !== null;
 
   return (
-    <section className="flex w-full flex-col gap-4">
-      <div className="flex flex-col gap-1">
-        <h2 className="text-lg font-medium text-zinc-900 dark:text-zinc-50">
-          Transform video
-        </h2>
-        <p className="text-sm text-zinc-600 dark:text-zinc-400">
-          Choose Magic Hour Video-to-Video options. The source file is taken
-          from the uploaded transformation — not from a client URL.
-        </p>
-        <p className="text-xs text-zinc-500">{durationHint}</p>
+    <SectionCard
+      id="transform"
+      title="2. Transform settings"
+      description="The source file is taken from your uploaded record — you don’t paste provider URLs here."
+      action={result ? <StatusBadge status="queued" pulsing /> : null}
+    >
+      <div className="mb-6 overflow-hidden rounded-xl border border-border bg-surface-muted">
+        <div className="flex items-center justify-between gap-3 border-b border-border px-3 py-2">
+          <p className="text-xs font-semibold tracking-wide text-muted uppercase">
+            Source preview
+          </p>
+          {sourceFilename ? (
+            <p className="max-w-[60%] truncate text-xs text-muted" title={sourceFilename}>
+              {sourceFilename}
+            </p>
+          ) : null}
+        </div>
+        <video
+          className="aspect-video w-full bg-black/90 object-contain"
+          controls
+          preload="metadata"
+          src={sourcePreviewUrl}
+        >
+          Your browser does not support the video tag.
+        </video>
       </div>
 
-      <video
-        className="w-full max-w-md rounded-md"
-        controls
-        preload="metadata"
-        src={sourcePreviewUrl}
-      >
-        <track kind="captions" />
-      </video>
-
-      <form className="flex flex-col gap-4" onSubmit={onSubmit} noValidate>
-        <label className="flex flex-col gap-1 text-sm">
-          <span>Name (optional)</span>
+      <form className="flex flex-col gap-6" onSubmit={onSubmit} noValidate>
+        <Field
+          label="Name (optional)"
+          htmlFor="transform-name"
+          hint="Shown in history. Defaults to the source filename if left blank."
+        >
           <input
-            className="rounded-md border border-zinc-300 bg-white px-3 py-2 dark:border-zinc-700 dark:bg-zinc-950"
+            id="transform-name"
+            className={controlClassName}
             value={form.name}
             disabled={disabled}
+            autoComplete="off"
             onChange={(event) => updateField("name", event.target.value)}
           />
-        </label>
+        </Field>
 
-        <div className="grid gap-4 sm:grid-cols-2">
-          <label className="flex flex-col gap-1 text-sm">
-            <span>Start seconds</span>
-            <input
-              type="number"
-              min={0}
-              step="0.1"
-              className="rounded-md border border-zinc-300 bg-white px-3 py-2 dark:border-zinc-700 dark:bg-zinc-950"
-              value={form.startSeconds}
-              disabled={disabled}
-              onChange={(event) =>
-                updateField("startSeconds", event.target.value)
-              }
-            />
-            {fieldErrors.startSeconds ? (
-              <span className="text-xs text-red-600">
-                {fieldErrors.startSeconds}
-              </span>
-            ) : null}
-          </label>
-
-          <label className="flex flex-col gap-1 text-sm">
-            <span>End seconds</span>
-            <input
-              type="number"
-              min={0.1}
-              step="0.1"
-              className="rounded-md border border-zinc-300 bg-white px-3 py-2 dark:border-zinc-700 dark:bg-zinc-950"
-              value={form.endSeconds}
-              disabled={disabled}
-              onChange={(event) => updateField("endSeconds", event.target.value)}
-            />
-            {fieldErrors.endSeconds ? (
-              <span className="text-xs text-red-600">
-                {fieldErrors.endSeconds}
-              </span>
-            ) : null}
-          </label>
-        </div>
-
-        <label className="flex flex-col gap-1 text-sm">
-          <span>FPS resolution</span>
-          <select
-            className="rounded-md border border-zinc-300 bg-white px-3 py-2 dark:border-zinc-700 dark:bg-zinc-950"
-            value={form.fpsResolution}
-            disabled={disabled}
-            onChange={(event) =>
-              updateField(
-                "fpsResolution",
-                event.target.value as FormState["fpsResolution"],
-              )
-            }
-          >
-            {MAGIC_HOUR_FPS_RESOLUTIONS.map((value) => (
-              <option key={value} value={value}>
-                {value}
-              </option>
-            ))}
-          </select>
-        </label>
-
-        <label className="flex flex-col gap-1 text-sm">
-          <span>Art style</span>
-          <select
-            className="rounded-md border border-zinc-300 bg-white px-3 py-2 dark:border-zinc-700 dark:bg-zinc-950"
-            value={form.artStyle}
-            disabled={disabled}
-            onChange={(event) =>
-              updateField(
-                "artStyle",
-                event.target.value as FormState["artStyle"],
-              )
-            }
-          >
-            {MAGIC_HOUR_ART_STYLES.map((value) => (
-              <option key={value} value={value}>
-                {value}
-              </option>
-            ))}
-          </select>
-          {fieldErrors["style.artStyle"] ? (
-            <span className="text-xs text-red-600">
-              {fieldErrors["style.artStyle"]}
-            </span>
-          ) : null}
-        </label>
-
-        <div className="grid gap-4 sm:grid-cols-2">
-          <label className="flex flex-col gap-1 text-sm">
-            <span>Model</span>
-            <select
-              className="rounded-md border border-zinc-300 bg-white px-3 py-2 dark:border-zinc-700 dark:bg-zinc-950"
-              value={form.model}
-              disabled={disabled}
-              onChange={(event) =>
-                updateField("model", event.target.value as FormState["model"])
-              }
+        <fieldset className="flex flex-col gap-4 rounded-xl border border-border p-4">
+          <legend className="px-1 text-sm font-semibold text-foreground">
+            Trim & timing
+          </legend>
+          <p className="text-xs leading-5 text-muted">{durationHint}</p>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <Field
+              label="Start (seconds)"
+              htmlFor="transform-start"
+              error={fieldErrors.startSeconds}
             >
-              {MAGIC_HOUR_MODELS.map((value) => (
-                <option key={value} value={value}>
-                  {value}
-                </option>
-              ))}
-            </select>
-          </label>
-
-          <label className="flex flex-col gap-1 text-sm">
-            <span>Version</span>
+              <input
+                id="transform-start"
+                type="number"
+                min={0}
+                step="0.1"
+                className={controlClassName}
+                value={form.startSeconds}
+                disabled={disabled}
+                aria-invalid={Boolean(fieldErrors.startSeconds)}
+                aria-describedby={
+                  fieldErrors.startSeconds ? "transform-start-error" : undefined
+                }
+                onChange={(event) =>
+                  updateField("startSeconds", event.target.value)
+                }
+              />
+            </Field>
+            <Field
+              label="End (seconds)"
+              htmlFor="transform-end"
+              error={fieldErrors.endSeconds}
+            >
+              <input
+                id="transform-end"
+                type="number"
+                min={0.1}
+                step="0.1"
+                className={controlClassName}
+                value={form.endSeconds}
+                disabled={disabled}
+                aria-invalid={Boolean(fieldErrors.endSeconds)}
+                aria-describedby={
+                  fieldErrors.endSeconds ? "transform-end-error" : undefined
+                }
+                onChange={(event) =>
+                  updateField("endSeconds", event.target.value)
+                }
+              />
+            </Field>
+          </div>
+          <Field
+            label="FPS resolution"
+            htmlFor="transform-fps"
+            hint="HALF is usually enough and uses fewer credits than FULL."
+          >
             <select
-              className="rounded-md border border-zinc-300 bg-white px-3 py-2 dark:border-zinc-700 dark:bg-zinc-950"
-              value={form.version}
+              id="transform-fps"
+              className={controlClassName}
+              value={form.fpsResolution}
               disabled={disabled}
               onChange={(event) =>
                 updateField(
-                  "version",
-                  event.target.value as FormState["version"],
+                  "fpsResolution",
+                  event.target.value as FormState["fpsResolution"],
                 )
               }
             >
-              {MAGIC_HOUR_VERSIONS.map((value) => (
+              {MAGIC_HOUR_FPS_RESOLUTIONS.map((value) => (
                 <option key={value} value={value}>
                   {value}
                 </option>
               ))}
             </select>
-          </label>
-        </div>
+          </Field>
+        </fieldset>
 
-        <label className="flex flex-col gap-1 text-sm">
-          <span>Prompt type</span>
-          <select
-            className="rounded-md border border-zinc-300 bg-white px-3 py-2 dark:border-zinc-700 dark:bg-zinc-950"
-            value={form.promptType}
-            disabled={disabled}
-            onChange={(event) =>
-              updateField(
-                "promptType",
-                event.target.value as FormState["promptType"],
-              )
-            }
+        <fieldset className="flex flex-col gap-4 rounded-xl border border-border p-4">
+          <legend className="px-1 text-sm font-semibold text-foreground">
+            Style & model
+          </legend>
+
+          <Field
+            label="Art style"
+            htmlFor="transform-art-style"
+            error={fieldErrors["style.artStyle"]}
           >
-            {MAGIC_HOUR_PROMPT_TYPES.map((value) => (
-              <option key={value} value={value}>
-                {value}
-              </option>
-            ))}
-          </select>
-        </label>
-
-        {promptRequired ? (
-          <label className="flex flex-col gap-1 text-sm">
-            <span>Prompt</span>
-            <textarea
-              className="min-h-24 rounded-md border border-zinc-300 bg-white px-3 py-2 dark:border-zinc-700 dark:bg-zinc-950"
-              value={form.prompt}
+            <select
+              id="transform-art-style"
+              className={controlClassName}
+              value={form.artStyle}
               disabled={disabled}
-              onChange={(event) => updateField("prompt", event.target.value)}
-            />
-            {fieldErrors["style.prompt"] ? (
-              <span className="text-xs text-red-600">
-                {fieldErrors["style.prompt"]}
-              </span>
-            ) : null}
-          </label>
-        ) : null}
+              aria-invalid={Boolean(fieldErrors["style.artStyle"])}
+              onChange={(event) =>
+                updateField(
+                  "artStyle",
+                  event.target.value as FormState["artStyle"],
+                )
+              }
+            >
+              {MAGIC_HOUR_ART_STYLES.map((value) => (
+                <option key={value} value={value}>
+                  {value}
+                </option>
+              ))}
+            </select>
+          </Field>
 
-        <button
-          type="submit"
-          disabled={disabled}
-          className="inline-flex h-11 items-center justify-center rounded-md bg-zinc-900 px-4 text-sm font-medium text-white disabled:cursor-not-allowed disabled:opacity-60 dark:bg-zinc-100 dark:text-zinc-900"
-        >
-          {isPending
-            ? "Starting transformation…"
-            : result
-              ? "Transformation queued"
-              : "Start transformation"}
-        </button>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <Field
+              label="Model"
+              htmlFor="transform-model"
+              hint="Leave on default unless you need a specific look."
+            >
+              <select
+                id="transform-model"
+                className={controlClassName}
+                value={form.model}
+                disabled={disabled}
+                onChange={(event) =>
+                  updateField("model", event.target.value as FormState["model"])
+                }
+              >
+                {MAGIC_HOUR_MODELS.map((value) => (
+                  <option key={value} value={value}>
+                    {value}
+                  </option>
+                ))}
+              </select>
+            </Field>
+
+            <Field
+              label="Version"
+              htmlFor="transform-version"
+              hint={VERSION_HINTS[form.version]}
+            >
+              <select
+                id="transform-version"
+                className={controlClassName}
+                value={form.version}
+                disabled={disabled}
+                onChange={(event) =>
+                  updateField(
+                    "version",
+                    event.target.value as FormState["version"],
+                  )
+                }
+              >
+                {MAGIC_HOUR_VERSIONS.map((value) => (
+                  <option key={value} value={value}>
+                    {value}
+                  </option>
+                ))}
+              </select>
+            </Field>
+          </div>
+
+          <Field
+            label="Prompt type"
+            htmlFor="transform-prompt-type"
+            hint={PROMPT_TYPE_HINTS[form.promptType]}
+          >
+            <select
+              id="transform-prompt-type"
+              className={controlClassName}
+              value={form.promptType}
+              disabled={disabled}
+              onChange={(event) =>
+                updateField(
+                  "promptType",
+                  event.target.value as FormState["promptType"],
+                )
+              }
+            >
+              {MAGIC_HOUR_PROMPT_TYPES.map((value) => (
+                <option key={value} value={value}>
+                  {value}
+                </option>
+              ))}
+            </select>
+          </Field>
+
+          {promptRequired ? (
+            <Field
+              label="Prompt"
+              htmlFor="transform-prompt"
+              error={fieldErrors["style.prompt"]}
+              hint="Required for custom and append_default prompt types."
+            >
+              <textarea
+                id="transform-prompt"
+                className={`${controlClassName} min-h-28`}
+                value={form.prompt}
+                disabled={disabled}
+                aria-invalid={Boolean(fieldErrors["style.prompt"])}
+                aria-describedby={
+                  fieldErrors["style.prompt"]
+                    ? "transform-prompt-error"
+                    : undefined
+                }
+                onChange={(event) => updateField("prompt", event.target.value)}
+              />
+            </Field>
+          ) : null}
+        </fieldset>
+
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <p className="text-xs leading-5 text-muted">
+            After submit, watch History for queued → processing → completed.
+            You can leave this page; state is saved.
+          </p>
+          <button
+            type="submit"
+            disabled={disabled}
+            className={primaryButtonClassName}
+          >
+            {isPending
+              ? "Starting…"
+              : result
+                ? "Queued"
+                : "Start transformation"}
+          </button>
+        </div>
       </form>
 
       {error ? (
-        <p className="text-sm text-red-700 dark:text-red-400" role="alert">
+        <p
+          className="mt-4 rounded-lg bg-danger-soft px-3 py-2 text-sm text-danger"
+          role="alert"
+        >
           {error}
         </p>
       ) : null}
 
       {result ? (
-        <div className="flex flex-col gap-2 rounded-md border border-zinc-200 p-4 text-sm dark:border-zinc-800">
-          <p className="font-medium text-zinc-900 dark:text-zinc-50">
-            Job accepted (queued)
+        <div
+          className="mt-4 rounded-xl border border-border bg-info-soft/50 p-4"
+          role="status"
+          aria-live="polite"
+        >
+          <p className="text-sm font-semibold text-info">
+            Transformation queued
           </p>
-          <p className="text-zinc-600 dark:text-zinc-400">
-            Magic Hour project ID:{" "}
-            <code className="font-mono text-xs">
-              {result.transformation.magicHour.projectId}
-            </code>
-          </p>
-          <p className="text-zinc-600 dark:text-zinc-400">
-            Estimated credits:{" "}
-            {result.transformation.magicHour.creditsCharged ?? "n/a"}
-          </p>
-          <p className="text-xs text-zinc-500">
-            Completion via webhook lands in Phase 4. Status will stay queued
-            until then.
+          <p className="mt-1 text-sm leading-6 text-foreground">
+            Magic Hour accepted the job
+            {typeof result.transformation.magicHour.creditsCharged === "number"
+              ? ` (${result.transformation.magicHour.creditsCharged} credits)`
+              : ""}
+            . History below updates automatically as rendering progresses.
           </p>
         </div>
       ) : null}
-    </section>
+    </SectionCard>
   );
 }

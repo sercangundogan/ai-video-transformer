@@ -1,26 +1,66 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --background: #f3f6f7;
+  --foreground: #102027;
+  --surface: #ffffff;
+  --surface-muted: #e8eef1;
+  --border: #cfd9de;
+  --muted: #5a6b74;
+  --accent: #0f766e;
+  --accent-hover: #0d9488;
+  --accent-soft: #d5f5f0;
+  --danger: #b42318;
+  --danger-soft: #fee4e2;
+  --warning: #b54708;
+  --warning-soft: #fef0c7;
+  --success: #067647;
+  --success-soft: #d3f8df;
+  --info: #175cd3;
+  --info-soft: #d1e9ff;
+  --ring: #0f766e;
+  --shadow: 0 1px 2px rgb(16 32 39 / 6%), 0 8px 24px rgb(16 32 39 / 4%);
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
+  --color-surface: var(--surface);
+  --color-surface-muted: var(--surface-muted);
+  --color-border: var(--border);
+  --color-muted: var(--muted);
+  --color-accent: var(--accent);
+  --color-accent-hover: var(--accent-hover);
+  --color-accent-soft: var(--accent-soft);
+  --color-danger: var(--danger);
+  --color-danger-soft: var(--danger-soft);
+  --color-warning: var(--warning);
+  --color-warning-soft: var(--warning-soft);
+  --color-success: var(--success);
+  --color-success-soft: var(--success-soft);
+  --color-info: var(--info);
+  --color-info-soft: var(--info-soft);
+  --color-ring: var(--ring);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+  --shadow-panel: var(--shadow);
 }
 
 body {
-  background: var(--background);
+  background:
+    radial-gradient(1200px 500px at 10% -10%, #d9f3ef 0%, transparent 55%),
+    radial-gradient(900px 420px at 100% 0%, #e7eef5 0%, transparent 50%),
+    var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+}
+
+*:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
+}
+
+.uc-light {
+  --uc-primary: var(--accent);
+  --uc-primary-hover: var(--accent-hover);
 }

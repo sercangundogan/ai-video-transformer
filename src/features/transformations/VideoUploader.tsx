@@ -4,11 +4,16 @@ import { useState } from "react";
 import { FileUploaderRegular } from "@uploadcare/react-uploader/next";
 import "@uploadcare/react-uploader/core.css";
 
+import {
+  SectionCard,
+  StatusBadge,
+} from "@/components/ui/primitives";
 import { getPublicEnv } from "@/lib/env.public";
 import {
   MAX_VIDEO_BYTES,
   UPLOADCARE_ACCEPT,
 } from "@/lib/upload/limits";
+import { truncateFilename } from "@/features/transformations/status";
 import type { ApiErrorBody } from "@/types/api";
 import type { UploadResponse } from "@/schemas/upload";
 
@@ -49,102 +54,163 @@ async function registerUpload(uuid: string): Promise<UploadResponse> {
   return body as UploadResponse;
 }
 
+function formatBytes(bytes: number): string {
+  if (bytes < 1024 * 1024) {
+    return `${Math.round(bytes / 1024)} KB`;
+  }
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+}
+
 export function VideoUploader({ onUploaded }: VideoUploaderProps) {
   const publicKey = readPublicKey();
   const [state, setState] = useState<UploadState>({ status: "idle" });
 
   if (!publicKey) {
     return (
-      <p className="text-sm text-red-700 dark:text-red-400">
-        Missing `NEXT_PUBLIC_UPLOADCARE_PUBLIC_KEY`. Add it to `.env.local` to
-        enable uploads.
-      </p>
+      <SectionCard
+        id="upload"
+        title="Upload source video"
+        description="Uploadcare is not configured for this environment."
+      >
+        <p className="rounded-lg bg-danger-soft px-3 py-2 text-sm text-danger" role="alert">
+          Missing `NEXT_PUBLIC_UPLOADCARE_PUBLIC_KEY`. Add it to `.env.local` to
+          enable uploads.
+        </p>
+      </SectionCard>
     );
   }
 
+  const maxMb = MAX_VIDEO_BYTES / (1024 * 1024);
+
   return (
-    <section className="flex w-full flex-col gap-4">
-      <div className="flex flex-col gap-1">
-        <h2 className="text-lg font-medium text-zinc-900 dark:text-zinc-50">
-          Upload source video
-        </h2>
-        <p className="text-sm text-zinc-600 dark:text-zinc-400">
-          MP4 or MOV, up to {MAX_VIDEO_BYTES / (1024 * 1024)} MB. Files go
-          directly to Uploadcare; our API then stores them in Cloudinary.
-        </p>
-      </div>
-
-      <FileUploaderRegular
-        pubkey={publicKey}
-        multiple={false}
-        accept={UPLOADCARE_ACCEPT}
-        maxLocalFileSizeBytes={MAX_VIDEO_BYTES}
-        sourceList="local"
-        classNameUploader="uc-light"
-        onFileUploadFailed={() => {
-          setState({
-            status: "error",
-            message:
-              "Uploadcare rejected the file. Check format (MP4/MOV) and size.",
-          });
-        }}
-        onFileUploadSuccess={(file) => {
-          void (async () => {
-            if (!file.uuid) {
-              setState({
-                status: "error",
-                message: "Uploadcare did not return a file UUID.",
-              });
-              return;
-            }
-
-            setState({ status: "registering" });
-
-            try {
-              const data = await registerUpload(file.uuid);
-              setState({ status: "success", data });
-              onUploaded?.(data);
-            } catch (error) {
+    <SectionCard
+      id="upload"
+      title="1. Upload source video"
+      description={`MP4 or MOV, up to ${maxMb} MB. The file uploads directly to Uploadcare, then we store a durable copy in Cloudinary.`}
+      action={
+        state.status === "success" ? (
+          <StatusBadge status="uploaded" />
+        ) : null
+      }
+    >
+      <div className="flex flex-col gap-4">
+        <div className="rounded-xl border border-dashed border-border bg-surface-muted/60 p-3 sm:p-4">
+          <FileUploaderRegular
+            pubkey={publicKey}
+            multiple={false}
+            accept={UPLOADCARE_ACCEPT}
+            maxLocalFileSizeBytes={MAX_VIDEO_BYTES}
+            sourceList="local"
+            classNameUploader="uc-light"
+            onFileUploadFailed={() => {
               setState({
                 status: "error",
                 message:
-                  error instanceof Error
-                    ? error.message
-                    : "Failed to register the uploaded video.",
+                  "Uploadcare rejected the file. Use MP4 or MOV within the size limit.",
               });
-            }
-          })();
-        }}
-      />
+            }}
+            onFileUploadSuccess={(file) => {
+              void (async () => {
+                if (!file.uuid) {
+                  setState({
+                    status: "error",
+                    message: "Uploadcare did not return a file UUID.",
+                  });
+                  return;
+                }
 
-      {state.status === "registering" ? (
-        <p className="text-sm text-zinc-600 dark:text-zinc-400">
-          Transferring to Cloudinary and saving metadata…
-        </p>
-      ) : null}
+                setState({ status: "registering" });
 
-      {state.status === "error" ? (
-        <p className="text-sm text-red-700 dark:text-red-400" role="alert">
-          {state.message}
-        </p>
-      ) : null}
-
-      {state.status === "success" ? (
-        <div className="flex flex-col gap-2 rounded-md border border-zinc-200 p-4 text-sm dark:border-zinc-800">
-          <p className="font-medium text-zinc-900 dark:text-zinc-50">
-            Upload registered
-          </p>
-          <p className="text-zinc-600 dark:text-zinc-400">
-            Transformation ID:{" "}
-            <code className="font-mono text-xs">
-              {state.data.transformation.id}
-            </code>
-          </p>
-          <p className="break-all text-zinc-600 dark:text-zinc-400">
-            Cloudinary: {state.data.transformation.sourceCloudinary.secureUrl}
-          </p>
+                try {
+                  const data = await registerUpload(file.uuid);
+                  setState({ status: "success", data });
+                  onUploaded?.(data);
+                } catch (error) {
+                  setState({
+                    status: "error",
+                    message:
+                      error instanceof Error
+                        ? error.message
+                        : "Failed to register the uploaded video.",
+                  });
+                }
+              })();
+            }}
+          />
         </div>
-      ) : null}
-    </section>
+
+        {state.status === "idle" ? (
+          <p className="text-sm text-muted">
+            Choose a short clip to start. After upload, transformation settings
+            unlock below.
+          </p>
+        ) : null}
+
+        {state.status === "registering" ? (
+          <p className="flex items-center gap-2 text-sm text-muted" aria-live="polite">
+            <span
+              className="size-2 animate-pulse rounded-full bg-accent"
+              aria-hidden
+            />
+            Saving to Cloudinary and creating your transformation record…
+          </p>
+        ) : null}
+
+        {state.status === "error" ? (
+          <p
+            className="rounded-lg bg-danger-soft px-3 py-2 text-sm text-danger"
+            role="alert"
+          >
+            {state.message}
+          </p>
+        ) : null}
+
+        {state.status === "success" ? (
+          <div className="rounded-xl border border-border bg-success-soft/40 p-4">
+            <p className="text-sm font-semibold text-success">
+              Source ready for transformation
+            </p>
+            <dl className="mt-3 grid gap-2 text-sm text-foreground sm:grid-cols-2">
+              <div className="min-w-0">
+                <dt className="text-xs font-medium tracking-wide text-muted uppercase">
+                  File
+                </dt>
+                <dd
+                  className="truncate"
+                  title={state.data.transformation.sourceUploadcare.filename}
+                >
+                  {truncateFilename(
+                    state.data.transformation.sourceUploadcare.filename,
+                  )}
+                </dd>
+              </div>
+              <div>
+                <dt className="text-xs font-medium tracking-wide text-muted uppercase">
+                  Size
+                </dt>
+                <dd>
+                  {formatBytes(
+                    state.data.transformation.sourceUploadcare.sizeBytes,
+                  )}
+                </dd>
+              </div>
+              {state.data.transformation.sourceCloudinary.duration ? (
+                <div>
+                  <dt className="text-xs font-medium tracking-wide text-muted uppercase">
+                    Duration
+                  </dt>
+                  <dd>
+                    {state.data.transformation.sourceCloudinary.duration.toFixed(
+                      2,
+                    )}
+                    s
+                  </dd>
+                </div>
+              ) : null}
+            </dl>
+          </div>
+        ) : null}
+      </div>
+    </SectionCard>
   );
 }

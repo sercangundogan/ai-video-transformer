@@ -20,7 +20,7 @@ export function TransformationWorkspace() {
   }
 
   return (
-    <div className="flex w-full flex-col gap-12">
+    <div className="flex w-full flex-col gap-6 sm:gap-8">
       <VideoUploader
         onUploaded={(data) => {
           setUpload(data);
@@ -35,14 +35,21 @@ export function TransformationWorkspace() {
             upload.transformation.sourceCloudinary.duration
           }
           sourcePreviewUrl={upload.transformation.sourceCloudinary.secureUrl}
+          sourceFilename={upload.transformation.sourceUploadcare.filename}
           onQueued={() => {
             invalidateHistory();
           }}
         />
       ) : (
-        <p className="text-sm text-zinc-500">
-          Upload a source video to unlock the transformation form.
-        </p>
+        <div className="rounded-2xl border border-dashed border-border bg-surface/70 px-4 py-8 text-center sm:px-6">
+          <p className="text-sm font-medium text-foreground">
+            Transformation form unlocks after upload
+          </p>
+          <p className="mt-1 text-sm text-muted">
+            Once your source video is saved, you can set trim, style, and submit
+            a Magic Hour job.
+          </p>
+        </div>
       )}
 
       <TransformationHistory />
