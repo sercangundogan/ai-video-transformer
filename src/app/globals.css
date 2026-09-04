@@ -72,7 +72,7 @@ body {
 .uc-dark {
   --uc-primary: var(--accent);
   --uc-primary-hover: var(--accent-hover);
-  --uc-background: transparent;
+  --uc-background: var(--surface-elevated);
   --uc-background-light: var(--surface-muted);
   --uc-foreground: var(--foreground);
   color-scheme: dark;
