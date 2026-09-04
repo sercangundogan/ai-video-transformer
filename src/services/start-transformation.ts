@@ -5,6 +5,7 @@ import { ObjectId, type Filter } from "mongodb";
 import { AppError } from "@/lib/errors";
 import { createVideoToVideoJob } from "@/lib/magic-hour";
 import {
+  STALE_QUEUED_CLAIM_MS,
   canStartTransformation,
   startConflictMessage,
 } from "@/lib/transformations/startability";
@@ -63,18 +64,32 @@ function conflictForStatus(status: TransformationStatus): AppError {
   );
 }
 
-const CLAIM_FILTER: Filter<TransformationDocument> = {
-  $or: [
-    { status: { $in: ["uploaded", "failed"] } },
-    {
-      status: "queued",
-      $or: [
-        { magicHour: { $exists: false } },
-        { "magicHour.projectId": { $exists: false } },
-      ],
-    },
-  ],
-};
+function claimFilter(now: Date): Filter<TransformationDocument> {
+  const staleBefore = new Date(now.getTime() - STALE_QUEUED_CLAIM_MS);
+
+  return {
+    $or: [
+      { status: { $in: ["uploaded", "failed"] } },
+      {
+        status: "queued",
+        $and: [
+          {
+            $or: [
+              { magicHour: { $exists: false } },
+              { "magicHour.projectId": { $exists: false } },
+            ],
+          },
+          {
+            $or: [
+              { queuedAt: { $lt: staleBefore } },
+              { queuedAt: { $exists: false } },
+            ],
+          },
+        ],
+      },
+    ],
+  };
+}
 
 async function persistMagicHourProjectId(options: {
   objectId: ObjectId;
@@ -158,10 +173,14 @@ export async function startTransformation(options: {
     );
   }
 
+  const now = new Date();
+
   if (
     !canStartTransformation({
       status: existing.status,
       hasMagicHourProjectId: Boolean(existing.magicHour?.projectId),
+      queuedAt: existing.queuedAt,
+      now,
     })
   ) {
     throw conflictForStatus(existing.status);
@@ -187,21 +206,20 @@ export async function startTransformation(options: {
     },
   };
 
-  const now = new Date();
-
   if (
     existing.status === "queued" &&
     !existing.magicHour?.projectId
   ) {
     console.warn("[transform] reclaiming stuck queued transformation", {
       transformationId: objectId.toHexString(),
+      queuedAt: existing.queuedAt?.toISOString(),
     });
   }
 
   const claimed = await collection.findOneAndUpdate(
     {
       _id: objectId,
-      ...CLAIM_FILTER,
+      ...claimFilter(now),
     },
     {
       $set: {

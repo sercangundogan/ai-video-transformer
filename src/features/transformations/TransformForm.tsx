@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState, useTransition, type FormEvent } from "react";
+import { useMemo, useRef, useState, type FormEvent } from "react";
 
 import {
   Field,
@@ -85,7 +85,8 @@ export function TransformForm({
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<TransformResponse | null>(null);
-  const [isPending, startTransition] = useTransition();
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const submitLockRef = useRef(false);
 
   const promptRequired =
     form.promptType === "custom" || form.promptType === "append_default";
@@ -134,6 +135,12 @@ export function TransformForm({
 
   function onSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+
+    // Sync lock blocks double-clicks before React re-renders disabled state.
+    if (submitLockRef.current || result !== null) {
+      return;
+    }
+
     setError(null);
 
     const parameters = buildParameters();
@@ -142,41 +149,45 @@ export function TransformForm({
       return;
     }
 
-    startTransition(() => {
-      void (async () => {
-        try {
-          const response = await fetch("/api/transform", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              transformationId,
-              parameters,
-            }),
-          });
+    submitLockRef.current = true;
+    setIsSubmitting(true);
 
-          const body: unknown = await response.json();
-          if (!response.ok) {
-            const errorBody = body as ApiErrorBody;
-            throw new Error(
-              errorBody.error?.message ?? "Failed to start transformation.",
-            );
-          }
+    void (async () => {
+      try {
+        const response = await fetch("/api/transform", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            transformationId,
+            parameters,
+          }),
+        });
 
-          setResult(body as TransformResponse);
-          onQueued?.(body as TransformResponse);
-        } catch (submitError) {
-          setResult(null);
-          setError(
-            submitError instanceof Error
-              ? submitError.message
-              : "Failed to start transformation.",
+        const body: unknown = await response.json();
+        if (!response.ok) {
+          const errorBody = body as ApiErrorBody;
+          throw new Error(
+            errorBody.error?.message ?? "Failed to start transformation.",
           );
         }
-      })();
-    });
+
+        setResult(body as TransformResponse);
+        onQueued?.(body as TransformResponse);
+      } catch (submitError) {
+        submitLockRef.current = false;
+        setResult(null);
+        setError(
+          submitError instanceof Error
+            ? submitError.message
+            : "Failed to start transformation.",
+        );
+      } finally {
+        setIsSubmitting(false);
+      }
+    })();
   }
 
-  const disabled = isPending || result !== null;
+  const disabled = isSubmitting || result !== null;
 
   return (
     <SectionCard
@@ -443,7 +454,7 @@ export function TransformForm({
             disabled={disabled}
             className={primaryButtonClassName}
           >
-            {isPending
+            {isSubmitting
               ? "Starting…"
               : result
                 ? "Queued"
