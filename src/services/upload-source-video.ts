@@ -11,8 +11,8 @@ import {
   MAX_VIDEO_BYTES,
 } from "@/lib/upload/limits";
 import {
-  buildUploadcareCdnUrl,
   fetchUploadcareFileInfo,
+  resolveTrustedUploadcareCdnUrl,
 } from "@/lib/uploadcare";
 import { getTransformationsCollection } from "@/models/transformation";
 import type { UploadResponse } from "@/schemas/upload";
@@ -107,7 +107,7 @@ export async function registerUploadedSourceVideo(
     isImage: fileInfo.is_image,
   });
 
-  const trustedCdnUrl = buildUploadcareCdnUrl(uuid);
+  const trustedCdnUrl = resolveTrustedUploadcareCdnUrl(fileInfo);
 
   const sourceCloudinary = await uploadSourceVideoFromUrl({
     uploadcareUuid: uuid,
@@ -134,11 +134,20 @@ export async function registerUploadedSourceVideo(
     return toUploadResponse(insertResult.insertedId.toHexString(), document);
   } catch (error) {
     await destroySourceVideo(sourceCloudinary.publicId);
+
+    console.error("[upload] Failed to persist transformation record", {
+      uploadcareUuid: uuid,
+      cloudinaryPublicId: sourceCloudinary.publicId,
+      error:
+        error instanceof Error
+          ? { name: error.name, message: error.message }
+          : { message: "Unknown persistence error" },
+    });
+
     throw new AppError(
       "INTERNAL_ERROR",
       "Failed to persist the uploaded transformation record.",
       500,
-      error,
     );
   }
 }

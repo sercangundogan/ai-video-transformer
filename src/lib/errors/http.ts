@@ -24,16 +24,44 @@ export function appErrorResponse(error: AppError): NextResponse<ApiErrorBody> {
   return errorResponse(error.code, error.message, error.status);
 }
 
+function safeErrorSummary(error: unknown): {
+  name?: string;
+  message?: string;
+} {
+  if (error instanceof Error) {
+    return {
+      name: error.name,
+      message: error.message,
+    };
+  }
+
+  if (typeof error === "string") {
+    return { message: error };
+  }
+
+  return {};
+}
+
 /**
  * Maps unknown route failures to a stable client-safe error envelope.
- * Logs server-side context without returning stack traces to the client.
+ * Logs only structured, non-sensitive server diagnostics.
  */
 export function handleRouteError(error: unknown): NextResponse<ApiErrorBody> {
   if (isAppError(error)) {
+    console.error("[api] Application error", {
+      code: error.code,
+      status: error.status,
+      message: error.message,
+    });
+
     return appErrorResponse(error);
   }
 
   if (error instanceof ZodError) {
+    console.error("[api] Request validation failed", {
+      issueCount: error.issues.length,
+    });
+
     return errorResponse(
       "INVALID_REQUEST",
       "Request validation failed.",
@@ -41,7 +69,7 @@ export function handleRouteError(error: unknown): NextResponse<ApiErrorBody> {
     );
   }
 
-  console.error("[api] Unhandled route error", error);
+  console.error("[api] Unhandled route error", safeErrorSummary(error));
 
   return errorResponse(
     "INTERNAL_ERROR",

@@ -18,9 +18,68 @@ const uploadcareFileInfoSchema = z.object({
 
 export type UploadcareFileInfo = z.infer<typeof uploadcareFileInfoSchema>;
 
+function isTrustedUploadcareHost(hostname: string): boolean {
+  return (
+    hostname === "ucarecdn.com" ||
+    hostname.endsWith(".ucarecdn.com") ||
+    hostname.endsWith(".ucarecd.net")
+  );
+}
+
 /**
- * Builds the canonical Uploadcare CDN URL for a UUID.
- * We never trust a client-supplied arbitrary remote URL for Cloudinary fetch.
+ * Resolves a Cloudinary-fetchable CDN URL from trusted Uploadcare REST metadata.
+ * Modern Uploadcare projects serve files from project-specific `*.ucarecd.net`
+ * hosts via `original_file_url` — the legacy `ucarecdn.com/{uuid}/` form can 404.
+ */
+export function resolveTrustedUploadcareCdnUrl(
+  fileInfo: UploadcareFileInfo,
+): string {
+  if (fileInfo.original_file_url) {
+    let parsed: URL;
+    try {
+      parsed = new URL(fileInfo.original_file_url);
+    } catch {
+      throw new AppError(
+        "UPLOADCARE_FAILURE",
+        "Uploadcare returned an invalid original file URL.",
+        502,
+      );
+    }
+
+    if (parsed.protocol !== "https:") {
+      throw new AppError(
+        "UPLOADCARE_FAILURE",
+        "Uploadcare original file URL must use HTTPS.",
+        502,
+      );
+    }
+
+    if (!isTrustedUploadcareHost(parsed.hostname)) {
+      throw new AppError(
+        "UPLOADCARE_FAILURE",
+        "Uploadcare original file URL host is not a trusted CDN host.",
+        502,
+      );
+    }
+
+    if (!parsed.pathname.includes(fileInfo.uuid)) {
+      throw new AppError(
+        "UPLOADCARE_FAILURE",
+        "Uploadcare original file URL does not match the file UUID.",
+        502,
+      );
+    }
+
+    return parsed.toString();
+  }
+
+  // Fallback for accounts that still serve the legacy CDN form.
+  return `https://ucarecdn.com/${fileInfo.uuid}/`;
+}
+
+/**
+ * @deprecated Prefer resolveTrustedUploadcareCdnUrl(fileInfo) which uses
+ * Uploadcare REST `original_file_url` when available.
  */
 export function buildUploadcareCdnUrl(uuid: string): string {
   return `https://ucarecdn.com/${uuid}/`;
@@ -54,11 +113,15 @@ export async function fetchUploadcareFileInfo(
   }
 
   if (!response.ok) {
+    console.error("[uploadcare] file metadata request failed", {
+      uuid,
+      status: response.status,
+    });
+
     throw new AppError(
       "UPLOADCARE_FAILURE",
       "Failed to verify the Uploadcare file metadata.",
       502,
-      { status: response.status },
     );
   }
 
@@ -66,11 +129,15 @@ export async function fetchUploadcareFileInfo(
   const parsed = uploadcareFileInfoSchema.safeParse(json);
 
   if (!parsed.success) {
+    console.error("[uploadcare] unexpected file metadata shape", {
+      uuid,
+      issueCount: parsed.error.issues.length,
+    });
+
     throw new AppError(
       "UPLOADCARE_FAILURE",
       "Uploadcare returned unexpected file metadata.",
       502,
-      parsed.error.issues,
     );
   }
 

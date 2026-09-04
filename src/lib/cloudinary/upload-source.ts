@@ -6,6 +6,7 @@ import {
   CLOUDINARY_SOURCE_FOLDER,
   getCloudinary,
 } from "@/lib/cloudinary/client";
+import { logCloudinaryFailure } from "@/lib/cloudinary/errors";
 import { AppError } from "@/lib/errors";
 import type { CloudinaryAsset } from "@/types/transformation";
 
@@ -22,6 +23,14 @@ function sourcePublicId(uploadcareUuid: string): string {
   return `${CLOUDINARY_SOURCE_FOLDER}/${uploadcareUuid}`;
 }
 
+function sourceHost(sourceUrl: string): string | undefined {
+  try {
+    return new URL(sourceUrl).host;
+  } catch {
+    return undefined;
+  }
+}
+
 /**
  * Asks Cloudinary to fetch a trusted Uploadcare CDN URL.
  * The video binary does not transit through our Vercel function body.
@@ -31,22 +40,33 @@ export async function uploadSourceVideoFromUrl(options: {
   sourceUrl: string;
 }): Promise<CloudinaryAsset> {
   const cloudinary = getCloudinary();
+  const publicId = sourcePublicId(options.uploadcareUuid);
+  const host = sourceHost(options.sourceUrl);
 
   try {
     const result = await cloudinary.uploader.upload(options.sourceUrl, {
       resource_type: "video",
-      public_id: sourcePublicId(options.uploadcareUuid),
+      public_id: publicId,
       overwrite: true,
       invalidate: true,
     });
 
     const parsed = cloudinaryUploadResultSchema.safeParse(result);
     if (!parsed.success) {
+      logCloudinaryFailure({
+        operation: "upload_source_video_from_url.parse_response",
+        uploadcareUuid: options.uploadcareUuid,
+        publicId,
+        sourceHost: host,
+        error: {
+          message: "Unexpected Cloudinary upload response shape",
+        },
+      });
+
       throw new AppError(
         "CLOUDINARY_FAILURE",
-        "Cloudinary returned an unexpected upload response.",
+        "Failed to store the source video in Cloudinary.",
         502,
-        parsed.error.issues,
       );
     }
 
@@ -63,11 +83,18 @@ export async function uploadSourceVideoFromUrl(options: {
       throw error;
     }
 
+    logCloudinaryFailure({
+      operation: "upload_source_video_from_url",
+      uploadcareUuid: options.uploadcareUuid,
+      publicId,
+      sourceHost: host,
+      error,
+    });
+
     throw new AppError(
       "CLOUDINARY_FAILURE",
       "Failed to store the source video in Cloudinary.",
       502,
-      error,
     );
   }
 }
@@ -84,7 +111,8 @@ export async function destroySourceVideo(publicId: string): Promise<void> {
       invalidate: true,
     });
   } catch (error) {
-    console.error("[cloudinary] Failed to destroy orphaned source asset", {
+    logCloudinaryFailure({
+      operation: "destroy_source_video",
       publicId,
       error,
     });

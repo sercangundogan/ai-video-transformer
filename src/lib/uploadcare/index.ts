@@ -7,5 +7,6 @@
 export {
   buildUploadcareCdnUrl,
   fetchUploadcareFileInfo,
+  resolveTrustedUploadcareCdnUrl,
   type UploadcareFileInfo,
 } from "@/lib/uploadcare/files";

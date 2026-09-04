@@ -7,3 +7,7 @@ export {
   destroySourceVideo,
   uploadSourceVideoFromUrl,
 } from "@/lib/cloudinary/upload-source";
+export {
+  extractCloudinaryErrorDetails,
+  logCloudinaryFailure,
+} from "@/lib/cloudinary/errors";
