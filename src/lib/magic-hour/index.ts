@@ -20,3 +20,10 @@ export {
   summarizeMagicHourRequestBody,
   toMagicHourVideoToVideoBody,
 } from "@/lib/magic-hour/map-request";
+export {
+  MAGIC_HOUR_SIGNATURE_HEADER,
+  MAGIC_HOUR_TIMESTAMP_HEADER,
+  MAGIC_HOUR_WEBHOOK_MAX_SKEW_SECONDS,
+  computeMagicHourWebhookSignature,
+  verifyMagicHourWebhook,
+} from "@/lib/magic-hour/verify-webhook";

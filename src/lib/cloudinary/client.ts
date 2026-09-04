@@ -22,3 +22,4 @@ export function getCloudinary() {
 }
 
 export const CLOUDINARY_SOURCE_FOLDER = "ai-video-transformer/source";
+export const CLOUDINARY_GENERATED_FOLDER = "ai-video-transformer/generated";
