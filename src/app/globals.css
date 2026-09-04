@@ -1,37 +1,45 @@
 @import "tailwindcss";
 
 :root {
-  --background: #f3f6f7;
-  --foreground: #102027;
-  --surface: #ffffff;
-  --surface-muted: #e8eef1;
-  --border: #cfd9de;
-  --muted: #5a6b74;
-  --accent: #0f766e;
-  --accent-hover: #0d9488;
-  --accent-soft: #d5f5f0;
-  --danger: #b42318;
-  --danger-soft: #fee4e2;
-  --warning: #b54708;
-  --warning-soft: #fef0c7;
-  --success: #067647;
-  --success-soft: #d3f8df;
-  --info: #175cd3;
-  --info-soft: #d1e9ff;
-  --ring: #0f766e;
-  --shadow: 0 1px 2px rgb(16 32 39 / 6%), 0 8px 24px rgb(16 32 39 / 4%);
+  --background: #0b0d12;
+  --foreground: #f4f5f8;
+  --surface: #12151c;
+  --surface-elevated: #171b24;
+  --surface-muted: #1c212c;
+  --border: rgb(148 163 184 / 14%);
+  --border-strong: rgb(148 163 184 / 22%);
+  --muted: #94a3b8;
+  --accent: #8b7cf6;
+  --accent-hover: #a498ff;
+  --accent-soft: rgb(139 124 246 / 16%);
+  --cyan: #67e8f9;
+  --cyan-soft: rgb(103 232 249 / 12%);
+  --danger: #fb7185;
+  --danger-soft: rgb(251 113 133 / 14%);
+  --warning: #fbbf24;
+  --warning-soft: rgb(251 191 36 / 12%);
+  --success: #34d399;
+  --success-soft: rgb(52 211 153 / 12%);
+  --info: #7dd3fc;
+  --info-soft: rgb(125 211 252 / 12%);
+  --ring: #8b7cf6;
+  --shadow: 0 1px 0 rgb(255 255 255 / 3%) inset, 0 12px 40px rgb(0 0 0 / 28%);
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --color-surface: var(--surface);
+  --color-surface-elevated: var(--surface-elevated);
   --color-surface-muted: var(--surface-muted);
   --color-border: var(--border);
+  --color-border-strong: var(--border-strong);
   --color-muted: var(--muted);
   --color-accent: var(--accent);
   --color-accent-hover: var(--accent-hover);
   --color-accent-soft: var(--accent-soft);
+  --color-cyan: var(--cyan);
+  --color-cyan-soft: var(--cyan-soft);
   --color-danger: var(--danger);
   --color-danger-soft: var(--danger-soft);
   --color-warning: var(--warning);
@@ -48,8 +56,8 @@
 
 body {
   background:
-    radial-gradient(1200px 500px at 10% -10%, #d9f3ef 0%, transparent 55%),
-    radial-gradient(900px 420px at 100% 0%, #e7eef5 0%, transparent 50%),
+    radial-gradient(900px 420px at 12% -8%, rgb(139 124 246 / 14%) 0%, transparent 55%),
+    radial-gradient(700px 380px at 92% 0%, rgb(103 232 249 / 7%) 0%, transparent 50%),
     var(--background);
   color: var(--foreground);
   font-family: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
@@ -60,7 +68,17 @@ body {
   outline-offset: 2px;
 }
 
-.uc-light {
+/* Uploadcare dark theme alignment */
+.uc-dark {
   --uc-primary: var(--accent);
   --uc-primary-hover: var(--accent-hover);
+  --uc-background: transparent;
+  --uc-background-light: var(--surface-muted);
+  --uc-foreground: var(--foreground);
+  color-scheme: dark;
+}
+
+select option {
+  background-color: #171b24;
+  color: #f4f5f8;
 }

@@ -181,23 +181,28 @@ export function TransformForm({
   return (
     <SectionCard
       id="transform"
-      title="2. Transform settings"
+      step="02"
+      title="Transform settings"
       description="The source file is taken from your uploaded record — you don’t paste provider URLs here."
       action={result ? <StatusBadge status="queued" pulsing /> : null}
+      emphasized
     >
-      <div className="mb-6 overflow-hidden rounded-xl border border-border bg-surface-muted">
+      <div className="mb-6 overflow-hidden rounded-xl border border-border bg-[#07090e]">
         <div className="flex items-center justify-between gap-3 border-b border-border px-3 py-2">
-          <p className="text-xs font-semibold tracking-wide text-muted uppercase">
+          <p className="text-[11px] font-semibold tracking-[0.12em] text-muted uppercase">
             Source preview
           </p>
           {sourceFilename ? (
-            <p className="max-w-[60%] truncate text-xs text-muted" title={sourceFilename}>
+            <p
+              className="max-w-[60%] truncate text-xs text-muted"
+              title={sourceFilename}
+            >
               {sourceFilename}
             </p>
           ) : null}
         </div>
         <video
-          className="aspect-video w-full bg-black/90 object-contain"
+          className="aspect-video w-full object-contain"
           controls
           preload="metadata"
           src={sourcePreviewUrl}
@@ -222,9 +227,9 @@ export function TransformForm({
           />
         </Field>
 
-        <fieldset className="flex flex-col gap-4 rounded-xl border border-border p-4">
-          <legend className="px-1 text-sm font-semibold text-foreground">
-            Trim & timing
+        <fieldset className="flex flex-col gap-4 rounded-xl border border-border bg-surface-muted/40 p-4">
+          <legend className="px-1 text-[11px] font-semibold tracking-[0.14em] text-cyan uppercase">
+            Clip
           </legend>
           <p className="text-xs leading-5 text-muted">{durationHint}</p>
           <div className="grid gap-4 sm:grid-cols-2">
@@ -299,9 +304,9 @@ export function TransformForm({
           </Field>
         </fieldset>
 
-        <fieldset className="flex flex-col gap-4 rounded-xl border border-border p-4">
-          <legend className="px-1 text-sm font-semibold text-foreground">
-            Style & model
+        <fieldset className="flex flex-col gap-4 rounded-xl border border-border bg-surface-muted/40 p-4">
+          <legend className="px-1 text-[11px] font-semibold tracking-[0.14em] text-accent uppercase">
+            Style
           </legend>
 
           <Field
@@ -428,10 +433,10 @@ export function TransformForm({
           ) : null}
         </fieldset>
 
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex flex-col gap-3 border-t border-border pt-4 sm:flex-row sm:items-center sm:justify-between">
           <p className="text-xs leading-5 text-muted">
-            After submit, watch History for queued → processing → completed.
-            You can leave this page; state is saved.
+            After submit, watch History for queued → processing → completed. You
+            can leave this page; state is saved.
           </p>
           <button
             type="submit"
@@ -449,7 +454,7 @@ export function TransformForm({
 
       {error ? (
         <p
-          className="mt-4 rounded-lg bg-danger-soft px-3 py-2 text-sm text-danger"
+          className="mt-4 rounded-lg border border-danger/25 bg-danger-soft px-3 py-2 text-sm text-danger"
           role="alert"
         >
           {error}
@@ -458,14 +463,14 @@ export function TransformForm({
 
       {result ? (
         <div
-          className="mt-4 rounded-xl border border-border bg-info-soft/50 p-4"
+          className="mt-4 rounded-xl border border-info/20 bg-info-soft px-4 py-3"
           role="status"
           aria-live="polite"
         >
           <p className="text-sm font-semibold text-info">
             Transformation queued
           </p>
-          <p className="mt-1 text-sm leading-6 text-foreground">
+          <p className="mt-1 text-sm leading-6 text-foreground/90">
             Magic Hour accepted the job
             {typeof result.transformation.magicHour.creditsCharged === "number"
               ? ` (${result.transformation.magicHour.creditsCharged} credits)`

@@ -41,12 +41,12 @@ export function TransformationWorkspace() {
           }}
         />
       ) : (
-        <div className="rounded-2xl border border-dashed border-border bg-surface/70 px-4 py-8 text-center sm:px-6">
+        <div className="rounded-xl border border-dashed border-border bg-surface/80 px-4 py-8 text-center sm:px-6">
           <p className="text-sm font-medium text-foreground">
             Transformation form unlocks after upload
           </p>
           <p className="mt-1 text-sm text-muted">
-            Once your source video is saved, you can set trim, style, and submit
+            Once your source video is saved, you can set clip, style, and submit
             a Magic Hour job.
           </p>
         </div>

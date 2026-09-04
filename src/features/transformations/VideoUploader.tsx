@@ -69,10 +69,14 @@ export function VideoUploader({ onUploaded }: VideoUploaderProps) {
     return (
       <SectionCard
         id="upload"
+        step="01"
         title="Upload source video"
         description="Uploadcare is not configured for this environment."
       >
-        <p className="rounded-lg bg-danger-soft px-3 py-2 text-sm text-danger" role="alert">
+        <p
+          className="rounded-lg border border-danger/25 bg-danger-soft px-3 py-2 text-sm text-danger"
+          role="alert"
+        >
           Missing `NEXT_PUBLIC_UPLOADCARE_PUBLIC_KEY`. Add it to `.env.local` to
           enable uploads.
         </p>
@@ -85,8 +89,9 @@ export function VideoUploader({ onUploaded }: VideoUploaderProps) {
   return (
     <SectionCard
       id="upload"
-      title="1. Upload source video"
-      description={`MP4 or MOV, up to ${maxMb} MB. The file uploads directly to Uploadcare, then we store a durable copy in Cloudinary.`}
+      step="01"
+      title="Upload source video"
+      description={`MP4 or MOV, up to ${maxMb} MB. Files go directly to Uploadcare; we then store a durable Cloudinary copy.`}
       action={
         state.status === "success" ? (
           <StatusBadge status="uploaded" />
@@ -94,14 +99,14 @@ export function VideoUploader({ onUploaded }: VideoUploaderProps) {
       }
     >
       <div className="flex flex-col gap-4">
-        <div className="rounded-xl border border-dashed border-border bg-surface-muted/60 p-3 sm:p-4">
+        <div className="rounded-xl border border-dashed border-border-strong bg-surface-muted/70 p-3 transition-colors hover:border-accent/35 hover:bg-surface-muted sm:p-5">
           <FileUploaderRegular
             pubkey={publicKey}
             multiple={false}
             accept={UPLOADCARE_ACCEPT}
             maxLocalFileSizeBytes={MAX_VIDEO_BYTES}
             sourceList="local"
-            classNameUploader="uc-light"
+            classNameUploader="uc-dark"
             onFileUploadFailed={() => {
               setState({
                 status: "error",
@@ -141,13 +146,16 @@ export function VideoUploader({ onUploaded }: VideoUploaderProps) {
 
         {state.status === "idle" ? (
           <p className="text-sm text-muted">
-            Choose a short clip to start. After upload, transformation settings
-            unlock below.
+            Choose a short clip to start. Transformation settings unlock after
+            upload.
           </p>
         ) : null}
 
         {state.status === "registering" ? (
-          <p className="flex items-center gap-2 text-sm text-muted" aria-live="polite">
+          <p
+            className="flex items-center gap-2 text-sm text-muted"
+            aria-live="polite"
+          >
             <span
               className="size-2 animate-pulse rounded-full bg-accent"
               aria-hidden
@@ -158,7 +166,7 @@ export function VideoUploader({ onUploaded }: VideoUploaderProps) {
 
         {state.status === "error" ? (
           <p
-            className="rounded-lg bg-danger-soft px-3 py-2 text-sm text-danger"
+            className="rounded-lg border border-danger/25 bg-danger-soft px-3 py-2 text-sm text-danger"
             role="alert"
           >
             {state.message}
@@ -166,13 +174,13 @@ export function VideoUploader({ onUploaded }: VideoUploaderProps) {
         ) : null}
 
         {state.status === "success" ? (
-          <div className="rounded-xl border border-border bg-success-soft/40 p-4">
+          <div className="rounded-xl border border-success/20 bg-success-soft px-4 py-3">
             <p className="text-sm font-semibold text-success">
               Source ready for transformation
             </p>
             <dl className="mt-3 grid gap-2 text-sm text-foreground sm:grid-cols-2">
               <div className="min-w-0">
-                <dt className="text-xs font-medium tracking-wide text-muted uppercase">
+                <dt className="text-[11px] font-medium tracking-wide text-muted uppercase">
                   File
                 </dt>
                 <dd
@@ -185,7 +193,7 @@ export function VideoUploader({ onUploaded }: VideoUploaderProps) {
                 </dd>
               </div>
               <div>
-                <dt className="text-xs font-medium tracking-wide text-muted uppercase">
+                <dt className="text-[11px] font-medium tracking-wide text-muted uppercase">
                   Size
                 </dt>
                 <dd>
@@ -196,7 +204,7 @@ export function VideoUploader({ onUploaded }: VideoUploaderProps) {
               </div>
               {state.data.transformation.sourceCloudinary.duration ? (
                 <div>
-                  <dt className="text-xs font-medium tracking-wide text-muted uppercase">
+                  <dt className="text-[11px] font-medium tracking-wide text-muted uppercase">
                     Duration
                   </dt>
                   <dd>

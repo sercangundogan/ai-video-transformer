@@ -64,23 +64,29 @@ function VideoPanel({
   src: string;
   tone: "source" | "generated";
 }) {
+  const isGenerated = tone === "generated";
+
   return (
     <div className="flex min-w-0 flex-col gap-2">
       <div className="flex items-center justify-between gap-2">
-        <p className="text-xs font-semibold tracking-wide text-muted uppercase">
+        <p className="text-[11px] font-semibold tracking-[0.12em] text-muted uppercase">
           {label}
         </p>
         <span
           className={
-            tone === "generated"
-              ? "rounded-md bg-accent-soft px-2 py-0.5 text-[11px] font-semibold text-accent"
-              : "rounded-md bg-surface-muted px-2 py-0.5 text-[11px] font-semibold text-muted"
+            isGenerated
+              ? "rounded-md border border-accent/30 bg-accent-soft px-2 py-0.5 text-[10px] font-semibold tracking-wide text-accent uppercase"
+              : "rounded-md border border-border bg-surface-muted px-2 py-0.5 text-[10px] font-semibold tracking-wide text-muted uppercase"
           }
         >
-          {tone === "generated" ? "Output" : "Input"}
+          {isGenerated ? "Generated" : "Source"}
         </span>
       </div>
-      <div className="overflow-hidden rounded-xl border border-border bg-black/90">
+      <div
+        className={`overflow-hidden rounded-xl border bg-[#07090e] ${
+          isGenerated ? "border-accent/25" : "border-border"
+        }`}
+      >
         <video
           className="aspect-video w-full object-contain"
           controls
@@ -105,9 +111,17 @@ function HistoryCard({ item, nowMs }: { item: HistoryItem; nowMs: number }) {
   const isActive = (ACTIVE_TRANSFORMATION_STATUSES as readonly string[]).includes(
     item.status,
   );
+  const output = item.output;
+  const isCompleted = item.status === "completed" && Boolean(output);
 
   return (
-    <article className="rounded-2xl border border-border bg-surface p-4 shadow-sm sm:p-5">
+    <article
+      className={`rounded-xl border p-4 sm:p-5 ${
+        isCompleted
+          ? "border-accent/20 bg-surface-elevated"
+          : "border-border bg-surface-muted/50"
+      }`}
+    >
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="min-w-0 flex-1">
           <h3
@@ -127,16 +141,20 @@ function HistoryCard({ item, nowMs }: { item: HistoryItem; nowMs: number }) {
         <StatusBadge status={item.status} pulsing={isActive} />
       </div>
 
-      <div className="mt-4 grid gap-4 lg:grid-cols-2">
+      <div
+        className={`mt-4 grid gap-4 ${
+          isCompleted ? "lg:grid-cols-[0.9fr_1.1fr]" : "lg:grid-cols-2"
+        }`}
+      >
         <VideoPanel label="Source" src={item.source.secureUrl} tone="source" />
-        {item.status === "completed" && item.output ? (
+        {isCompleted && output ? (
           <VideoPanel
             label="Generated"
-            src={item.output.secureUrl}
+            src={output.secureUrl}
             tone="generated"
           />
         ) : (
-          <div className="flex min-h-40 flex-col justify-center rounded-xl border border-dashed border-border bg-surface-muted/50 px-4 py-6 text-sm text-muted">
+          <div className="flex min-h-40 flex-col justify-center rounded-xl border border-dashed border-border bg-[#07090e]/60 px-4 py-6 text-sm text-muted">
             {item.status === "queued" ? (
               <p>
                 Waiting for Magic Hour to start rendering
@@ -158,7 +176,7 @@ function HistoryCard({ item, nowMs }: { item: HistoryItem; nowMs: number }) {
 
       {longRunning ? (
         <p
-          className="mt-4 rounded-lg bg-warning-soft px-3 py-2 text-sm text-warning"
+          className="mt-4 rounded-lg border border-warning/20 bg-warning-soft px-3 py-2 text-sm text-warning"
           role="status"
         >
           This is taking longer than usual. You can safely leave and come back
@@ -168,7 +186,7 @@ function HistoryCard({ item, nowMs }: { item: HistoryItem; nowMs: number }) {
 
       {item.status === "failed" && item.failure ? (
         <div
-          className="mt-4 rounded-lg bg-danger-soft px-3 py-2 text-sm text-danger"
+          className="mt-4 rounded-lg border border-danger/25 bg-danger-soft px-3 py-2 text-sm text-danger"
           role="alert"
         >
           <p className="font-semibold">{item.failure.message}</p>
@@ -179,12 +197,12 @@ function HistoryCard({ item, nowMs }: { item: HistoryItem; nowMs: number }) {
         </div>
       ) : null}
 
-      <div className="mt-4 flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted">
+      <div className="mt-4 flex flex-wrap gap-x-4 gap-y-1 border-t border-border pt-3 text-xs text-muted">
         {created ? <span>Created {created}</span> : null}
         {item.status === "completed" && completed ? (
           <span>Completed {completed}</span>
         ) : null}
-        <span className="truncate" title={item.source.filename}>
+        <span className="min-w-0 truncate" title={item.source.filename}>
           File {truncateFilename(item.source.filename)}
         </span>
       </div>
@@ -200,10 +218,14 @@ export function TransformationHistory() {
     return (
       <SectionCard
         id="history"
-        title="3. History"
+        step="03"
+        title="History"
         description="Loading your saved transformations…"
       >
-        <p className="flex items-center gap-2 text-sm text-muted" aria-live="polite">
+        <p
+          className="flex items-center gap-2 text-sm text-muted"
+          aria-live="polite"
+        >
           <span
             className="size-2 animate-pulse rounded-full bg-accent"
             aria-hidden
@@ -216,8 +238,11 @@ export function TransformationHistory() {
 
   if (query.isError) {
     return (
-      <SectionCard id="history" title="3. History">
-        <p className="rounded-lg bg-danger-soft px-3 py-2 text-sm text-danger" role="alert">
+      <SectionCard id="history" step="03" title="History">
+        <p
+          className="rounded-lg border border-danger/25 bg-danger-soft px-3 py-2 text-sm text-danger"
+          role="alert"
+        >
           {query.error instanceof Error
             ? query.error.message
             : "Failed to load history."}
@@ -240,7 +265,8 @@ export function TransformationHistory() {
   return (
     <SectionCard
       id="history"
-      title="3. History"
+      step="03"
+      title="History"
       description={
         query.data.meta.hasActive
           ? "Newest first. Live updates every few seconds while jobs are queued or processing."
@@ -259,7 +285,7 @@ export function TransformationHistory() {
       }
     >
       {items.length === 0 ? (
-        <div className="rounded-xl border border-dashed border-border bg-surface-muted/40 px-4 py-10 text-center">
+        <div className="rounded-xl border border-dashed border-border bg-surface-muted/30 px-4 py-10 text-center">
           <p className="text-sm font-medium text-foreground">
             No transformations yet
           </p>
