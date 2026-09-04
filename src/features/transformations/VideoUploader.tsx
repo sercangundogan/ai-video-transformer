@@ -19,6 +19,7 @@ import type { UploadResponse } from "@/schemas/upload";
 
 type UploadState =
   | { status: "idle" }
+  | { status: "uploading" }
   | { status: "registering" }
   | { status: "success"; data: UploadResponse }
   | { status: "error"; message: string };
@@ -61,6 +62,31 @@ function formatBytes(bytes: number): string {
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
 
+function UploadBusyNotice({
+  title,
+  detail,
+}: {
+  title: string;
+  detail: string;
+}) {
+  return (
+    <div
+      className="flex items-start gap-3 rounded-xl border border-accent/25 bg-accent-soft px-4 py-3"
+      role="status"
+      aria-live="polite"
+    >
+      <span
+        className="mt-0.5 size-4 shrink-0 animate-spin rounded-full border-2 border-accent/25 border-t-accent"
+        aria-hidden
+      />
+      <div className="min-w-0">
+        <p className="text-sm font-semibold text-foreground">{title}</p>
+        <p className="mt-0.5 text-xs leading-5 text-muted">{detail}</p>
+      </div>
+    </div>
+  );
+}
+
 export function VideoUploader({ onUploaded }: VideoUploaderProps) {
   const publicKey = readPublicKey();
   const [state, setState] = useState<UploadState>({ status: "idle" });
@@ -85,6 +111,7 @@ export function VideoUploader({ onUploaded }: VideoUploaderProps) {
   }
 
   const maxMb = MAX_VIDEO_BYTES / (1024 * 1024);
+  const isBusy = state.status === "uploading" || state.status === "registering";
 
   return (
     <SectionCard
@@ -95,11 +122,26 @@ export function VideoUploader({ onUploaded }: VideoUploaderProps) {
       action={
         state.status === "success" ? (
           <StatusBadge status="uploaded" />
+        ) : isBusy ? (
+          <span className="inline-flex items-center gap-1.5 rounded-md border border-accent/30 bg-accent-soft px-2.5 py-1 text-[11px] font-semibold tracking-[0.04em] text-accent uppercase">
+            <span
+              className="size-1.5 animate-pulse rounded-full bg-current"
+              aria-hidden
+            />
+            {state.status === "uploading" ? "Uploading" : "Saving"}
+          </span>
         ) : null
       }
     >
       <div className="flex flex-col gap-4">
-        <div className="rounded-xl border border-dashed border-border-strong bg-surface-muted/70 p-3 transition-colors hover:border-accent/35 hover:bg-surface-muted sm:p-5">
+        <div
+          className={`rounded-xl border border-dashed border-border-strong bg-surface-muted/70 p-3 transition-colors sm:p-5 ${
+            isBusy
+              ? "pointer-events-none opacity-55"
+              : "hover:border-accent/35 hover:bg-surface-muted"
+          }`}
+          aria-busy={isBusy}
+        >
           <FileUploaderRegular
             pubkey={publicKey}
             multiple={false}
@@ -107,6 +149,9 @@ export function VideoUploader({ onUploaded }: VideoUploaderProps) {
             maxLocalFileSizeBytes={MAX_VIDEO_BYTES}
             sourceList="local"
             classNameUploader="uc-dark"
+            onFileUploadStart={() => {
+              setState({ status: "uploading" });
+            }}
             onFileUploadFailed={() => {
               setState({
                 status: "error",
@@ -151,17 +196,18 @@ export function VideoUploader({ onUploaded }: VideoUploaderProps) {
           </p>
         ) : null}
 
+        {state.status === "uploading" ? (
+          <UploadBusyNotice
+            title="Uploading video…"
+            detail="Sending the file to Uploadcare. Keep this tab open."
+          />
+        ) : null}
+
         {state.status === "registering" ? (
-          <p
-            className="flex items-center gap-2 text-sm text-muted"
-            aria-live="polite"
-          >
-            <span
-              className="size-2 animate-pulse rounded-full bg-accent"
-              aria-hidden
-            />
-            Saving to Cloudinary and creating your transformation record…
-          </p>
+          <UploadBusyNotice
+            title="Saving source video…"
+            detail="Storing a Cloudinary copy and creating your transformation record. This can take a few seconds."
+          />
         ) : null}
 
         {state.status === "error" ? (
