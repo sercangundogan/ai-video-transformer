@@ -20,6 +20,7 @@ type TransformFormProps = {
   transformationId: string;
   sourceDurationSeconds?: number;
   sourcePreviewUrl: string;
+  onQueued?: (data: TransformResponse) => void;
 };
 
 type FormState = {
@@ -45,6 +46,7 @@ export function TransformForm({
   transformationId,
   sourceDurationSeconds,
   sourcePreviewUrl,
+  onQueued,
 }: TransformFormProps) {
   const [form, setForm] = useState<FormState>({
     name: "",
@@ -138,6 +140,7 @@ export function TransformForm({
           }
 
           setResult(body as TransformResponse);
+          onQueued?.(body as TransformResponse);
         } catch (submitError) {
           setResult(null);
           setError(

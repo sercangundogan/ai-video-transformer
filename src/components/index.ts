@@ -1,6 +1,5 @@
 /**
- * Shared presentational components.
- * Populated in later UI phases.
+ * Shared presentational components / app providers.
  */
 
-export {};
+export { AppProviders } from "@/components/providers/AppProviders";

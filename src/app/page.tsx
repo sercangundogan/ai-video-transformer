@@ -11,9 +11,9 @@ export default function Home() {
           Transform a source video
         </h1>
         <p className="max-w-xl text-base leading-7 text-zinc-600 dark:text-zinc-400">
-          Upload through Uploadcare, store in Cloudinary, then start a Magic
-          Hour Video-to-Video job. Webhook completion arrives in the next
-          phase.
+          Upload through Uploadcare, store in Cloudinary, start a Magic Hour
+          Video-to-Video job, then watch history update as webhooks complete the
+          lifecycle.
         </p>
       </header>
 
