@@ -20,7 +20,9 @@ export const transformParametersInputSchema = z
     fpsResolution: z.enum(MAGIC_HOUR_FPS_RESOLUTIONS).default("HALF"),
     style: z.object({
       artStyle: z.enum(MAGIC_HOUR_ART_STYLES),
-      version: z.enum(MAGIC_HOUR_VERSIONS).default("default"),
+      // Provider docs default to "default", but that currently resolves to
+      // unavailable V3 models for many styles (e.g. Studio Ghibli).
+      version: z.enum(MAGIC_HOUR_VERSIONS).default("v2"),
       promptType: z.enum(MAGIC_HOUR_PROMPT_TYPES).default("default"),
       prompt: z.string().trim().min(1).max(2000).nullable().optional(),
       model: z.enum(MAGIC_HOUR_MODELS).default("default"),

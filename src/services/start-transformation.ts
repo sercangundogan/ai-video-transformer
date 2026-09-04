@@ -110,7 +110,7 @@ export async function startTransformation(options: {
     fpsResolution: options.parameters.fpsResolution ?? "HALF",
     style: {
       ...options.parameters.style,
-      version: options.parameters.style.version ?? "default",
+      version: options.parameters.style.version ?? "v2",
       promptType: options.parameters.style.promptType ?? "default",
       model: options.parameters.style.model ?? "default",
       prompt:

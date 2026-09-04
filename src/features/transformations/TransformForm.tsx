@@ -52,7 +52,7 @@ export function TransformForm({
     endSeconds: defaultEndSeconds(sourceDurationSeconds),
     fpsResolution: "HALF",
     artStyle: "Studio Ghibli",
-    version: "default",
+    version: "v2",
     promptType: "default",
     prompt: "",
     model: "default",

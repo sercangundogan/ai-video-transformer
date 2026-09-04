@@ -5,7 +5,10 @@ import { z } from "zod";
 import { getMagicHourApiEnv } from "@/lib/env.server";
 import { AppError } from "@/lib/errors";
 import { mapMagicHourHttpError } from "@/lib/magic-hour/errors";
-import { toMagicHourVideoToVideoBody } from "@/lib/magic-hour/map-request";
+import {
+  summarizeMagicHourRequestBody,
+  toMagicHourVideoToVideoBody,
+} from "@/lib/magic-hour/map-request";
 import type { TransformParametersInput } from "@/schemas/transform";
 
 const createResponseSchema = z.object({
@@ -27,6 +30,7 @@ export async function createVideoToVideoJob(options: {
 }): Promise<MagicHourCreateVideoResult> {
   const { MAGIC_HOUR_API_KEY } = getMagicHourApiEnv();
   const body = toMagicHourVideoToVideoBody(options);
+  const requestSummary = summarizeMagicHourRequestBody(body);
 
   let response: Response;
   try {
@@ -42,6 +46,7 @@ export async function createVideoToVideoJob(options: {
     });
   } catch (error) {
     console.error("[magic-hour] network failure creating video-to-video job", {
+      request: requestSummary,
       error:
         error instanceof Error
           ? { name: error.name, message: error.message }
@@ -64,12 +69,13 @@ export async function createVideoToVideoJob(options: {
   }
 
   if (!response.ok) {
-    throw mapMagicHourHttpError(response.status, json);
+    throw mapMagicHourHttpError(response.status, json, requestSummary);
   }
 
   const parsed = createResponseSchema.safeParse(json);
   if (!parsed.success) {
     console.error("[magic-hour] unexpected create response shape", {
+      request: requestSummary,
       issueCount: parsed.error.issues.length,
     });
 

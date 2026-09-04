@@ -16,4 +16,7 @@ export {
 } from "@/lib/magic-hour/enums";
 export { createVideoToVideoJob } from "@/lib/magic-hour/client";
 export { mapMagicHourHttpError } from "@/lib/magic-hour/errors";
-export { toMagicHourVideoToVideoBody } from "@/lib/magic-hour/map-request";
+export {
+  summarizeMagicHourRequestBody,
+  toMagicHourVideoToVideoBody,
+} from "@/lib/magic-hour/map-request";

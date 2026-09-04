@@ -11,11 +11,12 @@ const providerErrorSchema = z.object({
 
 /**
  * Maps Magic Hour HTTP create-job errors to stable application errors.
- * Never returns provider stack traces or secrets to the client.
+ * Logs provider validation code/message server-side; never returns secrets.
  */
 export function mapMagicHourHttpError(
   status: number,
   body: unknown,
+  requestSummary?: Record<string, unknown>,
 ): AppError {
   const parsed = providerErrorSchema.safeParse(body);
   const providerCode = parsed.success ? parsed.data.code : undefined;
@@ -25,6 +26,7 @@ export function mapMagicHourHttpError(
     status,
     providerCode,
     providerMessage,
+    request: requestSummary,
   });
 
   if (status === 401) {
@@ -35,7 +37,11 @@ export function mapMagicHourHttpError(
     );
   }
 
-  if (status === 402 || providerCode === "insufficient_credits") {
+  if (
+    status === 402 ||
+    providerCode === "insufficient_credits" ||
+    providerCode === "subscription_required"
+  ) {
     return new AppError(
       "INSUFFICIENT_CREDITS",
       "Magic Hour reported insufficient credits for this transformation.",
@@ -43,12 +49,20 @@ export function mapMagicHourHttpError(
     );
   }
 
+  if (
+    providerMessage?.toLowerCase().includes("v3 models are not available")
+  ) {
+    return new AppError(
+      "MAGIC_HOUR_INVALID_INPUT",
+      'This art style is not available with version "default" yet. Choose version v1 or v2.',
+      400,
+    );
+  }
+
   if (status === 400 || status === 422 || status === 404) {
     return new AppError(
       "MAGIC_HOUR_INVALID_INPUT",
-      providerMessage && providerMessage.length > 0
-        ? "Magic Hour rejected the transformation input."
-        : "Magic Hour rejected the transformation input.",
+      "Magic Hour rejected the transformation input.",
       400,
     );
   }
