@@ -66,7 +66,6 @@ Browser
 - **Async Magic Hour + webhooks:** renders can take minutes; the app acknowledges job creation quickly.
 - **Adaptive polling:** poll only while jobs are `queued`/`processing`; stop when idle. No WebSockets/SSE for this assignment.
 
-More detail: [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md), [`docs/DECISIONS.md`](docs/DECISIONS.md).
 
 ## Local setup
 

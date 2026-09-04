@@ -1,7 +1,6 @@
 /**
  * Application-level video constraints for the take-home assignment.
  *
- * Binding constraint researched for Phase 2 (see docs/DECISIONS.md DEC-006):
  * Cloudinary Free plan max video file size is 100 MB. Magic Hour Free allows
  * 200 MB uploads. Uploadcare enforces whatever we configure client-side /
  * project-side; it is not the bottleneck here.

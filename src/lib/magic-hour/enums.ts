@@ -1,6 +1,5 @@
 /**
  * Current Magic Hour Video-to-Video enums from official OpenAPI.
- * Keep in sync with docs/MAGIC_HOUR_V2V_PARAMETERS.md.
  */
 
 export const MAGIC_HOUR_ART_STYLES = [

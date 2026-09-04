@@ -83,14 +83,14 @@ export function getCloudinaryEnv(): CloudinaryEnv {
   });
 }
 
-/** Required for Phase 3 transform job creation. */
+/** Required for transform job creation. */
 export function getMagicHourApiEnv(): MagicHourApiEnv {
   return parseOrThrow("magic hour api", magicHourApiEnvSchema, {
     MAGIC_HOUR_API_KEY: process.env.MAGIC_HOUR_API_KEY,
   });
 }
 
-/** Required starting Phase 4 webhook verification. */
+/** Required starting webhook verification. */
 export function getMagicHourWebhookEnv(): MagicHourWebhookEnv {
   return parseOrThrow("magic hour webhook", magicHourWebhookEnvSchema, {
     MAGIC_HOUR_WEBHOOK_SECRET: process.env.MAGIC_HOUR_WEBHOOK_SECRET,

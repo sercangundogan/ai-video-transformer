@@ -1,7 +1,7 @@
 import { z } from "zod";
 
 /**
- * Magic Hour video webhook event types we handle in Phase 4.
+ * Magic Hour video webhook event types.
  * @see https://docs.magichour.ai/integration/webhook/event-types
  */
 export const magicHourVideoWebhookTypeSchema = z.enum([
