@@ -1,6 +1,9 @@
 /**
  * Cloudinary provider boundary.
- * Upload/transfer helpers are implemented in Phase 2 and Phase 4.
  */
 
-export {};
+export { getCloudinary, CLOUDINARY_SOURCE_FOLDER } from "@/lib/cloudinary/client";
+export {
+  destroySourceVideo,
+  uploadSourceVideoFromUrl,
+} from "@/lib/cloudinary/upload-source";

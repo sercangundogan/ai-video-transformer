@@ -1,6 +1,11 @@
 /**
  * Uploadcare provider boundary.
- * Client upload wiring and server-side metadata validation land in Phase 2.
+ * Server file metadata helpers live in `./files`.
+ * Client upload UI uses `@uploadcare/react-uploader`.
  */
 
-export {};
+export {
+  buildUploadcareCdnUrl,
+  fetchUploadcareFileInfo,
+  type UploadcareFileInfo,
+} from "@/lib/uploadcare/files";
