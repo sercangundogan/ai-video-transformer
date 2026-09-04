@@ -14,17 +14,34 @@ import {
  */
 export const transformParametersInputSchema = z
   .object({
-    name: z.string().trim().min(1).max(120).optional(),
-    startSeconds: z.number().min(0),
-    endSeconds: z.number().min(0.1),
+    name: z
+      .string()
+      .trim()
+      .min(1, "Name must be at least 1 character.")
+      .max(120, "Name must be 120 characters or fewer.")
+      .optional(),
+    startSeconds: z
+      .number({ error: "Start seconds must be a number." })
+      .min(0, "Start seconds must be 0 or greater."),
+    endSeconds: z
+      .number({ error: "End seconds must be a number." })
+      .min(0.1, "End seconds must be at least 0.1."),
     fpsResolution: z.enum(MAGIC_HOUR_FPS_RESOLUTIONS).default("HALF"),
     style: z.object({
-      artStyle: z.enum(MAGIC_HOUR_ART_STYLES),
+      artStyle: z.enum(MAGIC_HOUR_ART_STYLES, {
+        error: "Select a valid art style.",
+      }),
       // Provider docs default to "default", but that currently resolves to
       // unavailable V3 models for many styles (e.g. Studio Ghibli).
       version: z.enum(MAGIC_HOUR_VERSIONS).default("v2"),
       promptType: z.enum(MAGIC_HOUR_PROMPT_TYPES).default("default"),
-      prompt: z.string().trim().min(1).max(2000).nullable().optional(),
+      prompt: z
+        .string()
+        .trim()
+        .min(1, "Prompt cannot be empty.")
+        .max(2000, "Prompt must be 2000 characters or fewer.")
+        .nullable()
+        .optional(),
       model: z.enum(MAGIC_HOUR_MODELS).default("default"),
     }),
   })
@@ -33,7 +50,7 @@ export const transformParametersInputSchema = z
       ctx.addIssue({
         code: "custom",
         path: ["endSeconds"],
-        message: "endSeconds must be greater than startSeconds.",
+        message: "End seconds must be greater than start seconds.",
       });
     }
 
@@ -46,7 +63,7 @@ export const transformParametersInputSchema = z
         code: "custom",
         path: ["style", "prompt"],
         message:
-          "prompt is required when promptType is custom or append_default.",
+          "A prompt is required when prompt type is custom or append_default.",
       });
     }
   });

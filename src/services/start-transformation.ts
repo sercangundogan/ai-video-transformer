@@ -41,7 +41,7 @@ function assertDurationBounds(
   if (parameters.startSeconds >= durationSeconds) {
     throw new AppError(
       "INVALID_REQUEST",
-      "startSeconds must be less than the source video duration.",
+      "Start seconds must be less than the source video duration.",
       400,
     );
   }
@@ -49,7 +49,7 @@ function assertDurationBounds(
   if (parameters.endSeconds > durationSeconds + 0.05) {
     throw new AppError(
       "INVALID_REQUEST",
-      "endSeconds cannot exceed the source video duration.",
+      "End seconds cannot exceed the source video duration.",
       400,
     );
   }
