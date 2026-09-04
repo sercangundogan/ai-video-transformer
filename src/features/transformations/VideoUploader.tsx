@@ -112,6 +112,9 @@ export function VideoUploader({ onUploaded }: VideoUploaderProps) {
 
   const maxMb = MAX_VIDEO_BYTES / (1024 * 1024);
   const isBusy = state.status === "uploading" || state.status === "registering";
+  // Never use pointer-events-none here — Uploadcare’s dialog is a child of this
+  // wrapper, so blocking clicks also disables Done / Clear.
+  const isRegistering = state.status === "registering";
 
   return (
     <SectionCard
@@ -136,8 +139,8 @@ export function VideoUploader({ onUploaded }: VideoUploaderProps) {
       <div className="flex flex-col gap-4">
         <div
           className={`rounded-xl border border-dashed border-border-strong bg-surface-muted/70 p-3 transition-colors sm:p-5 ${
-            isBusy
-              ? "pointer-events-none opacity-55"
+            isRegistering
+              ? "opacity-55"
               : "hover:border-accent/35 hover:bg-surface-muted"
           }`}
           aria-busy={isBusy}
