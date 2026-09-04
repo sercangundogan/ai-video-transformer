@@ -1,5 +1,3 @@
-import "server-only";
-
 import { z } from "zod";
 
 import { AppError } from "@/lib/errors";

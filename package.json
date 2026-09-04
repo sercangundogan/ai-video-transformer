@@ -8,7 +8,7 @@
     "start": "next start",
     "lint": "eslint",
     "typecheck": "tsc --noEmit",
-    "test": "tsx --test src/lib/magic-hour/verify-webhook.test.ts src/lib/history/map-item.test.ts"
+    "test": "tsx --test src/lib/magic-hour/verify-webhook.test.ts src/lib/magic-hour/download-url.test.ts src/lib/magic-hour/errors.test.ts src/lib/history/map-item.test.ts src/lib/transformations/startability.test.ts src/lib/uploadcare/cdn-url.test.ts"
   },
   "dependencies": {
     "@tanstack/react-query": "^5.102.8",

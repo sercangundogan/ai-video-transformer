@@ -1,5 +1,7 @@
 import "server-only";
 
+import { MongoServerError } from "mongodb";
+
 import {
   destroySourceVideo,
   uploadSourceVideoFromUrl,
@@ -81,6 +83,10 @@ function validateUploadcareMetadata(options: {
   }
 }
 
+function isDuplicateKeyError(error: unknown): boolean {
+  return error instanceof MongoServerError && error.code === 11000;
+}
+
 /**
  * Uploadcare UUID → verify metadata → Cloudinary remote fetch → MongoDB record.
  */
@@ -98,6 +104,14 @@ export async function registerUploadedSourceVideo(
   }
 
   const fileInfo = await fetchUploadcareFileInfo(uuid);
+
+  if (fileInfo.uuid !== uuid) {
+    throw new AppError(
+      "INVALID_VIDEO_REFERENCE",
+      "Uploadcare file UUID did not match the registration request.",
+      400,
+    );
+  }
 
   validateUploadcareMetadata({
     mimeType: fileInfo.mime_type,
@@ -133,6 +147,15 @@ export async function registerUploadedSourceVideo(
     const insertResult = await collection.insertOne(document);
     return toUploadResponse(insertResult.insertedId.toHexString(), document);
   } catch (error) {
+    if (isDuplicateKeyError(error)) {
+      const raced = await collection.findOne({
+        "sourceUploadcare.uuid": uuid,
+      });
+      if (raced) {
+        return toUploadResponse(raced._id.toHexString(), raced);
+      }
+    }
+
     await destroySourceVideo(sourceCloudinary.publicId);
 
     console.error("[upload] Failed to persist transformation record", {

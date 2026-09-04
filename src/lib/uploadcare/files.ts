@@ -1,89 +1,18 @@
 import "server-only";
 
-import { z } from "zod";
-
 import { getUploadcareServerEnv } from "@/lib/env.server";
 import { getPublicEnv } from "@/lib/env.public";
 import { AppError } from "@/lib/errors";
+import {
+  uploadcareFileInfoSchema,
+  type UploadcareFileInfo,
+} from "@/lib/uploadcare/cdn-url";
 
-const uploadcareFileInfoSchema = z.object({
-  uuid: z.string().min(1),
-  mime_type: z.string().min(1),
-  original_filename: z.string().min(1),
-  size: z.number().int().nonnegative(),
-  is_ready: z.boolean(),
-  is_image: z.boolean(),
-  original_file_url: z.url().nullable().optional(),
-});
-
-export type UploadcareFileInfo = z.infer<typeof uploadcareFileInfoSchema>;
-
-function isTrustedUploadcareHost(hostname: string): boolean {
-  return (
-    hostname === "ucarecdn.com" ||
-    hostname.endsWith(".ucarecdn.com") ||
-    hostname.endsWith(".ucarecd.net")
-  );
-}
-
-/**
- * Resolves a Cloudinary-fetchable CDN URL from trusted Uploadcare REST metadata.
- * Modern Uploadcare projects serve files from project-specific `*.ucarecd.net`
- * hosts via `original_file_url` — the legacy `ucarecdn.com/{uuid}/` form can 404.
- */
-export function resolveTrustedUploadcareCdnUrl(
-  fileInfo: UploadcareFileInfo,
-): string {
-  if (fileInfo.original_file_url) {
-    let parsed: URL;
-    try {
-      parsed = new URL(fileInfo.original_file_url);
-    } catch {
-      throw new AppError(
-        "UPLOADCARE_FAILURE",
-        "Uploadcare returned an invalid original file URL.",
-        502,
-      );
-    }
-
-    if (parsed.protocol !== "https:") {
-      throw new AppError(
-        "UPLOADCARE_FAILURE",
-        "Uploadcare original file URL must use HTTPS.",
-        502,
-      );
-    }
-
-    if (!isTrustedUploadcareHost(parsed.hostname)) {
-      throw new AppError(
-        "UPLOADCARE_FAILURE",
-        "Uploadcare original file URL host is not a trusted CDN host.",
-        502,
-      );
-    }
-
-    if (!parsed.pathname.includes(fileInfo.uuid)) {
-      throw new AppError(
-        "UPLOADCARE_FAILURE",
-        "Uploadcare original file URL does not match the file UUID.",
-        502,
-      );
-    }
-
-    return parsed.toString();
-  }
-
-  // Fallback for accounts that still serve the legacy CDN form.
-  return `https://ucarecdn.com/${fileInfo.uuid}/`;
-}
-
-/**
- * @deprecated Prefer resolveTrustedUploadcareCdnUrl(fileInfo) which uses
- * Uploadcare REST `original_file_url` when available.
- */
-export function buildUploadcareCdnUrl(uuid: string): string {
-  return `https://ucarecdn.com/${uuid}/`;
-}
+export type { UploadcareFileInfo } from "@/lib/uploadcare/cdn-url";
+export {
+  buildUploadcareCdnUrl,
+  resolveTrustedUploadcareCdnUrl,
+} from "@/lib/uploadcare/cdn-url";
 
 /**
  * Fetches authoritative file metadata from Uploadcare REST API.

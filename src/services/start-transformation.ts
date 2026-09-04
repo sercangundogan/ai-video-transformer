@@ -1,17 +1,22 @@
 import "server-only";
 
-import { ObjectId } from "mongodb";
+import { ObjectId, type Filter } from "mongodb";
 
 import { AppError } from "@/lib/errors";
 import { createVideoToVideoJob } from "@/lib/magic-hour";
+import {
+  canStartTransformation,
+  startConflictMessage,
+} from "@/lib/transformations/startability";
 import { getTransformationsCollection } from "@/models/transformation";
 import type {
   TransformParametersInput,
   TransformResponse,
 } from "@/schemas/transform";
-import type { TransformationStatus } from "@/types/transformation";
-
-const STARTABLE_STATUSES = ["uploaded", "failed"] as const satisfies readonly TransformationStatus[];
+import type {
+  TransformationDocument,
+  TransformationStatus,
+} from "@/types/transformation";
 
 function parseObjectId(id: string): ObjectId {
   if (!ObjectId.isValid(id)) {
@@ -51,26 +56,85 @@ function assertDurationBounds(
 }
 
 function conflictForStatus(status: TransformationStatus): AppError {
-  if (status === "queued" || status === "processing") {
-    return new AppError(
-      "INVALID_REQUEST",
-      "This transformation is already in progress.",
-      409,
-    );
-  }
-
-  if (status === "completed") {
-    return new AppError(
-      "INVALID_REQUEST",
-      "This transformation has already completed.",
-      409,
-    );
-  }
-
   return new AppError(
     "INVALID_REQUEST",
-    "This transformation cannot be started in its current state.",
+    startConflictMessage(status),
     409,
+  );
+}
+
+const CLAIM_FILTER: Filter<TransformationDocument> = {
+  $or: [
+    { status: { $in: ["uploaded", "failed"] } },
+    {
+      status: "queued",
+      $or: [
+        { magicHour: { $exists: false } },
+        { "magicHour.projectId": { $exists: false } },
+      ],
+    },
+  ],
+};
+
+async function persistMagicHourProjectId(options: {
+  objectId: ObjectId;
+  projectId: string;
+  creditsCharged: number;
+}): Promise<void> {
+  const collection = await getTransformationsCollection();
+  const magicHour = {
+    projectId: options.projectId,
+    creditsCharged: options.creditsCharged,
+    providerStatus: "queued" as const,
+  };
+
+  const attempt = async () =>
+    collection.updateOne(
+      { _id: options.objectId },
+      {
+        $set: {
+          magicHour,
+          updatedAt: new Date(),
+        },
+      },
+    );
+
+  let result = await attempt();
+  if (result.matchedCount === 0) {
+    result = await attempt();
+  }
+
+  if (result.matchedCount === 1) {
+    return;
+  }
+
+  // Last resort: keep projectId so webhooks can still complete, mark failed.
+  console.error("[transform] failed to persist Magic Hour projectId", {
+    transformationId: options.objectId.toHexString(),
+    projectId: options.projectId,
+  });
+
+  await collection.updateOne(
+    { _id: options.objectId },
+    {
+      $set: {
+        status: "failed",
+        magicHour,
+        failedAt: new Date(),
+        updatedAt: new Date(),
+        failure: {
+          code: "INTERNAL_ERROR",
+          message:
+            "The Magic Hour job was created, but saving its project ID failed. You can retry starting the transformation.",
+        },
+      },
+    },
+  );
+
+  throw new AppError(
+    "INTERNAL_ERROR",
+    "The transformation job was created, but saving its state failed. Please retry.",
+    500,
   );
 }
 
@@ -95,7 +159,10 @@ export async function startTransformation(options: {
   }
 
   if (
-    !(STARTABLE_STATUSES as readonly string[]).includes(existing.status)
+    !canStartTransformation({
+      status: existing.status,
+      hasMagicHourProjectId: Boolean(existing.magicHour?.projectId),
+    })
   ) {
     throw conflictForStatus(existing.status);
   }
@@ -121,12 +188,20 @@ export async function startTransformation(options: {
   };
 
   const now = new Date();
-  const previousStatus = existing.status;
+
+  if (
+    existing.status === "queued" &&
+    !existing.magicHour?.projectId
+  ) {
+    console.warn("[transform] reclaiming stuck queued transformation", {
+      transformationId: objectId.toHexString(),
+    });
+  }
 
   const claimed = await collection.findOneAndUpdate(
     {
       _id: objectId,
-      status: { $in: [...STARTABLE_STATUSES] },
+      ...CLAIM_FILTER,
     },
     {
       $set: {
@@ -165,21 +240,13 @@ export async function startTransformation(options: {
       cloudinarySecureUrl: claimed.sourceCloudinary.secureUrl,
     });
 
-    const queuedAt = claimed.queuedAt ?? now;
+    await persistMagicHourProjectId({
+      objectId,
+      projectId: job.projectId,
+      creditsCharged: job.creditsCharged,
+    });
 
-    await collection.updateOne(
-      { _id: objectId },
-      {
-        $set: {
-          magicHour: {
-            projectId: job.projectId,
-            creditsCharged: job.creditsCharged,
-            providerStatus: "queued",
-          },
-          updatedAt: new Date(),
-        },
-      },
-    );
+    const queuedAt = claimed.queuedAt ?? now;
 
     return {
       transformation: {
@@ -194,11 +261,21 @@ export async function startTransformation(options: {
       },
     };
   } catch (error) {
+    // If projectId persist already marked failed after MH success, rethrow as-is.
+    if (
+      error instanceof AppError &&
+      error.code === "INTERNAL_ERROR" &&
+      error.message.includes("saving its state failed")
+    ) {
+      throw error;
+    }
+
     await collection.updateOne(
       { _id: objectId },
       {
         $set: {
-          status: previousStatus,
+          status: "failed",
+          failedAt: new Date(),
           updatedAt: new Date(),
           ...(error instanceof AppError
             ? {
@@ -207,7 +284,12 @@ export async function startTransformation(options: {
                   message: error.message,
                 },
               }
-            : {}),
+            : {
+                failure: {
+                  code: "MAGIC_HOUR_PROCESSING_FAILURE",
+                  message: "Failed to start the Magic Hour transformation.",
+                },
+              }),
         },
         $unset: {
           queuedAt: "",

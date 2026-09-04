@@ -5,6 +5,8 @@ import { uploadRequestSchema, type UploadResponse } from "@/schemas/upload";
 import { registerUploadedSourceVideo } from "@/services/upload-source-video";
 
 export const runtime = "nodejs";
+/** Cloudinary remote video fetch can exceed the default serverless window. */
+export const maxDuration = 60;
 
 export async function POST(
   request: Request,

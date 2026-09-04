@@ -14,6 +14,8 @@ import {
 import { processMagicHourWebhookEvent } from "@/services/process-webhook-event";
 
 export const runtime = "nodejs";
+/** Completion copies Magic Hour output into Cloudinary before acknowledging. */
+export const maxDuration = 60;
 
 /**
  * Magic Hour dashboard-registered webhook receiver.

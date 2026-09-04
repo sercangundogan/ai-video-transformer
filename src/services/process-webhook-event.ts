@@ -2,6 +2,7 @@ import "server-only";
 
 import { uploadGeneratedVideoFromUrl } from "@/lib/cloudinary/upload-generated";
 import { AppError } from "@/lib/errors";
+import { assertTrustedMagicHourDownloadUrl } from "@/lib/magic-hour/download-url";
 import { getTransformationsCollection } from "@/models/transformation";
 import {
   magicHourVideoWebhookTypeSchema,
@@ -175,9 +176,15 @@ async function handleVideoCompleted(
     );
   }
 
+  const trustedDownloadUrl = assertTrustedMagicHourDownloadUrl(
+    downloadUrl,
+    (message) =>
+      new AppError("OUTPUT_TRANSFER_FAILURE", message, 502),
+  );
+
   const output = await uploadGeneratedVideoFromUrl({
     magicHourProjectId: payload.id,
-    sourceUrl: downloadUrl,
+    sourceUrl: trustedDownloadUrl,
   });
 
   const now = new Date();

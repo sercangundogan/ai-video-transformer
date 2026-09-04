@@ -15,6 +15,10 @@ export {
   type MagicHourVersion,
 } from "@/lib/magic-hour/enums";
 export { createVideoToVideoJob } from "@/lib/magic-hour/client";
+export {
+  assertTrustedMagicHourDownloadUrl,
+  isTrustedMagicHourDownloadHost,
+} from "@/lib/magic-hour/download-url";
 export { mapMagicHourHttpError } from "@/lib/magic-hour/errors";
 export {
   summarizeMagicHourRequestBody,
