@@ -14,10 +14,13 @@ import type { UploadResponse } from "@/schemas/upload";
 
 type UploadState =
   | { status: "idle" }
-  | { status: "uploading_to_uploadcare" }
   | { status: "registering" }
   | { status: "success"; data: UploadResponse }
   | { status: "error"; message: string };
+
+type VideoUploaderProps = {
+  onUploaded?: (data: UploadResponse) => void;
+};
 
 function readPublicKey(): string | null {
   try {
@@ -46,7 +49,7 @@ async function registerUpload(uuid: string): Promise<UploadResponse> {
   return body as UploadResponse;
 }
 
-export function VideoUploader() {
+export function VideoUploader({ onUploaded }: VideoUploaderProps) {
   const publicKey = readPublicKey();
   const [state, setState] = useState<UploadState>({ status: "idle" });
 
@@ -100,6 +103,7 @@ export function VideoUploader() {
             try {
               const data = await registerUpload(file.uuid);
               setState({ status: "success", data });
+              onUploaded?.(data);
             } catch (error) {
               setState({
                 status: "error",
@@ -139,14 +143,6 @@ export function VideoUploader() {
           <p className="break-all text-zinc-600 dark:text-zinc-400">
             Cloudinary: {state.data.transformation.sourceCloudinary.secureUrl}
           </p>
-          <video
-            className="mt-2 w-full max-w-md rounded-md"
-            controls
-            preload="metadata"
-            src={state.data.transformation.sourceCloudinary.secureUrl}
-          >
-            <track kind="captions" />
-          </video>
         </div>
       ) : null}
     </section>

@@ -1,4 +1,4 @@
-import { VideoUploader } from "@/features/transformations/VideoUploader";
+import { TransformationWorkspace } from "@/features/transformations/TransformationWorkspace";
 
 export default function Home() {
   return (
@@ -8,15 +8,16 @@ export default function Home() {
           AI Video Transformer
         </p>
         <h1 className="text-4xl font-semibold tracking-tight text-zinc-900 dark:text-zinc-50">
-          Upload a source video
+          Transform a source video
         </h1>
         <p className="max-w-xl text-base leading-7 text-zinc-600 dark:text-zinc-400">
-          Phase 2 wires Uploadcare → application validation → Cloudinary source
-          storage → MongoDB. Transformation jobs come next.
+          Upload through Uploadcare, store in Cloudinary, then start a Magic
+          Hour Video-to-Video job. Webhook completion arrives in the next
+          phase.
         </p>
       </header>
 
-      <VideoUploader />
+      <TransformationWorkspace />
     </main>
   );
 }

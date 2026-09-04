@@ -1,5 +1,13 @@
 import { z } from "zod";
 
+import {
+  MAGIC_HOUR_ART_STYLES,
+  MAGIC_HOUR_FPS_RESOLUTIONS,
+  MAGIC_HOUR_MODELS,
+  MAGIC_HOUR_PROMPT_TYPES,
+  MAGIC_HOUR_VERSIONS,
+} from "@/lib/magic-hour/enums";
+
 /**
  * Internal transformation lifecycle statuses.
  * Intentionally decoupled from Magic Hour provider statuses.
@@ -44,21 +52,20 @@ export const transformationFailureSchema = z.object({
 });
 
 /**
- * Parameters persisted for history / replay.
- * Exact Magic Hour form fields are finalized in Phase 3 from the official API checklist.
+ * Exact effective parameters persisted after a transform request is accepted.
  */
 export const transformationParametersSchema = z
   .object({
     name: z.string().min(1).optional(),
     startSeconds: z.number().min(0),
-    endSeconds: z.number().positive(),
-    fpsResolution: z.enum(["FULL", "HALF"]).optional(),
+    endSeconds: z.number().min(0.1),
+    fpsResolution: z.enum(MAGIC_HOUR_FPS_RESOLUTIONS),
     style: z.object({
-      artStyle: z.string().min(1),
-      version: z.enum(["v1", "v2", "default"]).optional(),
-      promptType: z.enum(["default", "custom", "append_default"]).optional(),
+      artStyle: z.enum(MAGIC_HOUR_ART_STYLES),
+      version: z.enum(MAGIC_HOUR_VERSIONS),
+      promptType: z.enum(MAGIC_HOUR_PROMPT_TYPES),
       prompt: z.string().nullable().optional(),
-      model: z.string().min(1).optional(),
+      model: z.enum(MAGIC_HOUR_MODELS),
     }),
   })
   .strict();

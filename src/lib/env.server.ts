@@ -21,8 +21,11 @@ const appEnvSchema = z.object({
   APP_URL: z.url(),
 });
 
-const magicHourEnvSchema = z.object({
+const magicHourApiEnvSchema = z.object({
   MAGIC_HOUR_API_KEY: z.string().min(1),
+});
+
+const magicHourWebhookEnvSchema = z.object({
   MAGIC_HOUR_WEBHOOK_SECRET: z.string().min(1),
 });
 
@@ -30,7 +33,8 @@ export type MongoEnv = z.infer<typeof mongoEnvSchema>;
 export type UploadcareServerEnv = z.infer<typeof uploadcareServerEnvSchema>;
 export type CloudinaryEnv = z.infer<typeof cloudinaryEnvSchema>;
 export type AppEnv = z.infer<typeof appEnvSchema>;
-export type MagicHourEnv = z.infer<typeof magicHourEnvSchema>;
+export type MagicHourApiEnv = z.infer<typeof magicHourApiEnvSchema>;
+export type MagicHourWebhookEnv = z.infer<typeof magicHourWebhookEnvSchema>;
 
 function formatEnvError(label: string, error: z.ZodError): Error {
   const details = error.issues
@@ -79,12 +83,16 @@ export function getCloudinaryEnv(): CloudinaryEnv {
   });
 }
 
-/**
- * Required starting in Phase 3 (transform + webhook).
- */
-export function getMagicHourEnv(): MagicHourEnv {
-  return parseOrThrow("magic hour", magicHourEnvSchema, {
+/** Required for Phase 3 transform job creation. */
+export function getMagicHourApiEnv(): MagicHourApiEnv {
+  return parseOrThrow("magic hour api", magicHourApiEnvSchema, {
     MAGIC_HOUR_API_KEY: process.env.MAGIC_HOUR_API_KEY,
+  });
+}
+
+/** Required starting Phase 4 webhook verification. */
+export function getMagicHourWebhookEnv(): MagicHourWebhookEnv {
+  return parseOrThrow("magic hour webhook", magicHourWebhookEnvSchema, {
     MAGIC_HOUR_WEBHOOK_SECRET: process.env.MAGIC_HOUR_WEBHOOK_SECRET,
   });
 }
