@@ -131,7 +131,7 @@ Transform accepts **`transformationId` + parameters only** — clients cannot ov
 
 ## Important implementation decisions
 
-- **100 MB upload limit** — application cap chosen around the Cloudinary Free-plan video limit (not a universal Cloudinary platform ceiling). See DEC-006.
+- **100 MB upload limit** — application cap chosen around the Cloudinary Free-plan video limit (not a universal Cloudinary platform ceiling).
 - **Trusted Uploadcare `original_file_url`** — modern Uploadcare CDN hosts (`*.ucarecd.net`); host-allowlisted before Cloudinary fetch.
 - **Default Magic Hour `version: v2`** — provider `default` currently resolves to unavailable V3 for many styles; live probe confirmed `v2` for all supported art styles.
 - **Duplicate transform protection** — atomic claim before creating a Magic Hour job; stuck `queued` without `projectId` can be reclaimed.
@@ -142,7 +142,7 @@ Transform accepts **`transformationId` + parameters only** — clients cannot ov
 
 The assignment text describes sending a **webhook callback URL with the transform request**. Current Magic Hour Video-to-Video APIs register webhooks in the **Developer Hub**; the create request has no `webhook_url` field.
 
-This project follows the **current provider API** (dashboard subscription → `POST /api/webhook`) and documents the difference in DEC-003.
+This project follows the **current provider API** (dashboard subscription → `POST /api/webhook`).
 
 ## Limitations / production improvements
 
